@@ -88,10 +88,10 @@ export class MyMats {
 export class MySounds {
     // initializes sounds
     constructor(scene) {
-        this.animChange = BF.MakeSound('animChange', '/resources/animChange.mp3', scene);
+        this.animChange = BF.MakeSound('animChange', 'resources/animChange.mp3', scene);
 
-        this.blockHit = BF.MakeSound('blockHit', '/resources/blockHit.mp3', scene, null, {spatialSound: true});
+        this.blockHit = BF.MakeSound('blockHit', 'resources/blockHit.mp3', scene, null, {spatialSound: true});
 
-        this.uiClick = BF.MakeSound('uiClick', '/resources/uiClick.mp3', scene);
+        this.uiClick = BF.MakeSound('uiClick', 'resources/uiClick.mp3', scene);
     }
 }

@@ -102,7 +102,7 @@ export class PendTugOfWar {
         var pivHeight = 15;
         this.spherePiv.position = BF.Vec3([0, pivHeight, -3]);
         this.cubePiv.position = BF.Vec3([0, pivHeight, 3]);
-        this.blockHitSound = BF.MakeSound('blockHit', '/resources/blockHit.mp3', scene, null, {spatialSound: true});
+        this.blockHitSound = BF.MakeSound('blockHit', 'resources/blockHit.mp3', scene, null, {spatialSound: true});
         this.blockHitSound.setPosition(BF.Vec3([0,pivHeight,0]));
 
         this.topRope = BF.MakeTube('topRope', scene, .25);
