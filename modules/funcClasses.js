@@ -541,6 +541,16 @@ export class GF {
     static DoNothing() {
         // does nothing
     }
+
+    static SwitchVarIntoList(variable, list, index) {
+        // variable is set to list[index]
+        // puts variable into list at index (replacing what's there)
+        // ex. variable = GF.SwitchVarIntoList(variable, list, index);
+        var temp = list[index];
+        list[index] = variable;
+
+        return temp;
+    }
 }
 
 export class FuncBuffer {

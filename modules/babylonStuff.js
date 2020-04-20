@@ -403,7 +403,9 @@ export class Cam {
     static MOVEINTERPMULT = .1;
     static ROTINTERPMULT = .1;
 
-    static TARGETPOSITIONSTEP = .18;
+    static HEIGHT = 8;
+    static CROUCHHEIGHT = 2; // height cam goes to when crouching
+    static TARGETPOSITIONSTEP = .25;
     static TARGETROTATIONSTEP = .05;
 
     static MINALT = -.8 * Math.PI/2;
@@ -412,18 +414,23 @@ export class Cam {
     static GRAVITY = .01;
     static JUMPV = .2;
     static BOUNCEACCELDOWN = .04; // delta jumpV when jumpV < 0 during bounce
-    static BOUNCEINTERPMULT = -.1;
+    static BOUNCEINTERPMULT = .1;
+
+    static CROUCHSTEP = .1;
+    static CROUCHINTERPMULT = .1;
 
     static MakeCam(camPos, scene, canvas) {
         var cam = new BABYLON.TargetCamera('camera', BF.ZeroVec3(), scene);
 
         cam.setupCam = function() {
             // make and parent camMesh to cam
-            cam.camMesh = BF.MakeBox('camMesh', scene, 1, 2.2, 1);
-            cam.camMesh.locallyTranslate(BF.Vec3([0, -.9, 0]));
+            cam.camMesh = BF.MakeBox('camMesh', scene, 1, Cam.HEIGHT + .5, 1);
+            cam.camMesh.locallyTranslate(BF.Vec3([0, (Cam.HEIGHT + .5)/2, 0]));
             BF.BakeMeshs([cam.camMesh]);
+            camPos.y -= Cam.HEIGHT;
             cam.camMesh.position = camPos;
             cam.parent = cam.camMesh;
+            cam.position.y = Cam.HEIGHT;
 
             // make input manager
             cam.inputs = new BABYLON.CameraInputsManager(cam);
@@ -449,18 +456,26 @@ export class Cam {
 
             // rotation target is moved to. cam is rotated about cam local x axis by alt
             // camMesh is rotated about world y axis by azim
+            cam.upVec = BF.Vec3([0,1,0]);
             cam.targetRot = BF.Vec2([0,0]); // first comp is alt, second is azim
 
             cam.deltaAlt = 0;
             cam.deltaAzim = 0;
 
-            // defines up direction. azim rotation is about this direction
-            cam.upVec = BF.Vec3([0,1,0]);
+            //setup jumping
             cam.ground = null; // set this once the ground mesh is created;
             cam.onGround = false; // mode. whether mesh is onground
             cam.bounceOnGround = false; // mode. bounce a little after contacting ground;
             cam.jumpV = 0;
+            cam.bounceV = 0;
             cam.bounceDist = 0; // returns to 0 after bounce finishes
+
+            // setup crouching
+            cam.crouchV = 0;
+            cam.targetCrouch = Cam.HEIGHT;
+
+            // to disable kb movement input
+            cam.suspendMoveInput = false;
         }
         
         cam.setupCam();
@@ -470,6 +485,7 @@ export class Cam {
             cam.forwardV = Cam.MOVEINTERPMULT * cam.targetPos.x;
             cam.sideV = Cam.MOVEINTERPMULT * cam.targetPos.y;
             cam.camMesh.locallyTranslate(BF.SetVec3([cam.sideV, cam.jumpV, cam.forwardV], cam.deltaPos));
+            cam.position.y += cam.crouchV + cam.bounceV;
             cam.updateJump();
             cam.updateBounce();
             cam.targetPos.x -= cam.forwardV;
@@ -480,7 +496,8 @@ export class Cam {
             // updates the jumping state;
             if (!cam.onGround) {
                 if (BF.DoMeshsIntersect(cam.camMesh, cam.ground)) {
-                    cam.jumpV += Cam.BOUNCEACCELDOWN;
+                    cam.bounceV = cam.jumpV;
+                    cam.jumpV = 0;
                     cam.onGround = true;
                     cam.bounceOnGround = true;
                 } else {
@@ -491,18 +508,30 @@ export class Cam {
 
         cam.updateBounce = function() {
             if (cam.bounceOnGround) {
-                cam.bounceDist += cam.jumpV;
-                if (cam.jumpV < 0) { // on its way down
-                    cam.jumpV += Cam.BOUNCEACCELDOWN;
+                if (cam.bounceV < 0) { // on its way down
+                    cam.bounceV += Cam.BOUNCEACCELDOWN;
                 } else { // on its way up
-                    cam.jumpV = Cam.BOUNCEINTERPMULT * cam.bounceDist;
-                    if(cam.bounceDist > -0.001) {
+                    var dist = Cam.HEIGHT - cam.position.y
+                    cam.bounceV = Cam.BOUNCEINTERPMULT * dist;
+                    if(dist < 0.01) {
                         cam.bounceOnGround = false;
-                        cam.bounceDist = 0;
-                        cam.jumpV = 0;
+                        cam.bounceV = 0;
                     }
                 }
             }
+        }
+        
+        cam.updateCrouch = function() {
+            if (cam.bounceOnGround) {
+                cam.crouchV = 0;
+            } else {
+                cam.crouchV = Cam.CROUCHINTERPMULT * (cam.targetCrouch - cam.position.y);
+            }
+            
+        }
+
+        cam.onGroundCheck = function() {
+            cam.onGround = BF.DoMeshsIntersect(cam.camMesh, cam.ground);
         }
 
         cam.rotToTarget = function() {
@@ -512,7 +541,7 @@ export class Cam {
             cam.boundAlt();
             
             cam.deltaAzim = Cam.ROTINTERPMULT * cam.targetRot.y;
-            cam.camMesh.rotate(cam.upVec, cam.deltaAzim, BABYLON.Space.WORLD);
+            cam.camMesh.rotate(cam.upVec, cam.deltaAzim, BABYLON.Space.LOCAL);
             cam.targetRot.y -= cam.deltaAzim;
         }
 
@@ -546,7 +575,7 @@ export class Cam {
             cam.setLookDirection(VF.R(BF.Vec3ToAr(cam.camMesh.position), ar3));
         }
 
-        cam.stepFuncs = [cam.inputs.checkInputs, cam.moveToTarget, cam.rotToTarget];
+        cam.stepFuncs = [cam.inputs.checkInputs, cam.moveToTarget, cam.rotToTarget, cam.updateCrouch, cam.onGroundCheck];
 
         return cam;
     }
@@ -634,6 +663,10 @@ export class Cam {
                 this._onKeyDown = null;
                 this._onKeyUp = null;
             }
+        };
+
+        kbRotateInput.prototype._onLostFocus = function (e) {
+            this._keys = [];
         };
     
         kbRotateInput.prototype.checkInputs = function() {
@@ -745,32 +778,39 @@ export class Cam {
                 this._onKeyUp = null;
             }
         };
+
+        kbMoveInput.prototype._onLostFocus = function (e) {
+            this._keys = [];
+        };
     
         kbMoveInput.prototype.checkInputs = function() {
             //this is where you set what the keys do
-            if (this._onKeyDown) {
-                for (var index = 0; index < this._keys.length; index++) {
-                    var keyCode = this._keys[index];
-                    if (this.keysLeft.indexOf(keyCode) !== -1) {
-                        cam.targetPos.y -= Cam.TARGETPOSITIONSTEP;
-                    } else if (this.keysRight.indexOf(keyCode) !== -1) {
-                        cam.targetPos.y += Cam.TARGETPOSITIONSTEP;
-                    } if (this.keysForward.indexOf(keyCode) !== -1) {
-                        cam.targetPos.x += Cam.TARGETPOSITIONSTEP;
-                    } else if (this.keysBack.indexOf(keyCode) !== -1) {
-                        cam.targetPos.x -= Cam.TARGETPOSITIONSTEP;
-                    } if (this.keysJump.indexOf(keyCode) !== -1) {
-                        if(cam.onGround) {
-                            cam.jumpV = Cam.JUMPV;
-                            cam.onGround = false;
-                            cam.bounceOnGround = false;
-                            cam.bounceDist = 0;
+            if (!cam.suspendMoveInput) {
+                if (this._onKeyDown) {
+                    for (var index = 0; index < this._keys.length; index++) {
+                        var keyCode = this._keys[index];
+                        if (this.keysLeft.indexOf(keyCode) !== -1) {
+                            cam.targetPos.y -= Cam.TARGETPOSITIONSTEP;
+                        } else if (this.keysRight.indexOf(keyCode) !== -1) {
+                            cam.targetPos.y += Cam.TARGETPOSITIONSTEP;
+                        } if (this.keysForward.indexOf(keyCode) !== -1) {
+                            cam.targetPos.x += Cam.TARGETPOSITIONSTEP;
+                        } else if (this.keysBack.indexOf(keyCode) !== -1) {
+                            cam.targetPos.x -= Cam.TARGETPOSITIONSTEP;
+                        } if (this.keysJump.indexOf(keyCode) !== -1) {
+                            if(cam.onGround) {
+                                cam.jumpV = Cam.JUMPV;
+                                cam.onGround = false;
+                                cam.bounceOnGround = false;
+                                cam.bounceDist = 0;
+                            }
+                        } else if (this.keysCrouch.indexOf(keyCode) !== -1) {
+                            cam.targetCrouch = math.max(cam.targetCrouch - 2*Cam.CROUCHSTEP, Cam.CROUCHHEIGHT-Cam.CROUCHSTEP);
                         }
-                    } else if (this.keysCrouch.indexOf(keyCode) !== -1) {
-                        
                     }
                 }
             }
+            cam.targetCrouch = math.min(cam.targetCrouch + Cam.CROUCHSTEP, Cam.HEIGHT); // always runs to return targetCrouch to 0
         };
     
         return new kbMoveInput();

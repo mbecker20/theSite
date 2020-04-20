@@ -212,11 +212,20 @@ export class UI {
         return menu;
     }
 
-    static MakeAnimStateChooseAnimMenu(anims, gui, mySounds) {
+    static MakeAnimStateChooseAnimMenu(anims, gui) {
         // adds the caMenu to gui texture and adds the choose anim button to main menu
         var caMenu = UI.MakeSubMenu('simulations', gui.mainMenu, gui, 'choose simulation');
         var animKeys = Object.keys(anims);
         var animState = {anims: anims};
+        animState.switchActiveAnim = function(animKey) {
+            window.sounds.animChange.play();
+            animState.activeAnim.deactivate();
+            animState.activeAnim = animState.anims[animKey];
+            animState.activeAnim.activate();
+            caMenu.activeAnimButton.color = 'white';
+            caMenu.activeAnimButton = animState.anims[animKey].aaButton;
+            caMenu.activeAnimButton.color = 'green';
+        }
         var animButtons = [];
         var animButtonNames = [];
         var animMenus = [];
@@ -226,7 +235,8 @@ export class UI {
             } else {
                 anims[animKeys[i]].deactivate();
             }
-            animButtons.push(UI.MakeMenuActivateAnimButton(animKeys[i], animState, caMenu));
+            animState.anims[animKeys[i]].aaButton = UI.MakeMenuActivateAnimButton(animKeys[i], animState)
+            animButtons.push(animState.anims[animKeys[i]].aaButton);
             animButtonNames.push(animKeys[i].concat('PB'))
             animMenus.push(animState.anims[animKeys[i]].guiMenu);
         }
@@ -505,15 +515,9 @@ export class UI {
         return fsButton;
     }
 
-    static MakeMenuActivateAnimButton(text, animState, caMenu) {
-        var aaButton = UI.MakeButton('', text, function() {
-            window.sounds.animChange.play();
-            animState.activeAnim.deactivate();
-            animState.activeAnim = animState.anims[text];
-            animState.activeAnim.activate();
-            caMenu.activeAnimButton.color = 'white';
-            caMenu.activeAnimButton = aaButton;
-            caMenu.activeAnimButton.color = 'green';
+    static MakeMenuActivateAnimButton(animKey, animState) {
+        var aaButton = UI.MakeButton('', animKey, function() {
+            animState.switchActiveAnim(animKey)
         });
         aaButton.color = 'white';
         aaButton.horizontalAlignment = BABYLON.GUI.HORIZONTAL_ALIGNMENT_CENTER;
