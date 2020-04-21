@@ -860,7 +860,7 @@ export class UI {
     static SLIDERHEADERH = '26px';
     static SLIDERH = '30px';
 
-    static JOYSTICKOUTERRAD = 90;
+    static JOYSTICKOUTERRAD = 80;
     static JOYSTICKOUTERCOLOR = 'grey';
     static JOYSTICKOUTERBOUNDCOLOR = 'grey';
     static JOYSTICKOUTERALPHA = .5;
@@ -869,7 +869,7 @@ export class UI {
     static JOYSTICKSTICKCOLOR = 'black';
     static JOYSTICKSTICKBOUNDCOLOR = 'black';
 
-    static MAXJOYSTICKDIST = 100;
+    static MAXJOYSTICKDIST = 85;
 
     // makes the main gui object
     static MakeGUI(canvas) {
