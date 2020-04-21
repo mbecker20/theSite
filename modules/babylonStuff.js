@@ -860,13 +860,14 @@ export class UI {
     static SLIDERHEADERH = '26px';
     static SLIDERH = '30px';
 
-    static JOYSTICKOUTERRAD = 100;
+    static JOYSTICKOUTERRAD = 90;
     static JOYSTICKOUTERCOLOR = 'grey';
-    static JOYSTICKOUTERBOUNDCOLOR = 'blue';
+    static JOYSTICKOUTERBOUNDCOLOR = 'grey';
+    static JOYSTICKOUTERALPHA = .5;
     
     static JOYSTICKSTICKRAD = 50;
-    static JOYSTICKSTICKCOLOR = 'white';
-    static JOYSTICKSTICKBOUNDCOLOR = 'white';
+    static JOYSTICKSTICKCOLOR = 'black';
+    static JOYSTICKSTICKBOUNDCOLOR = 'black';
 
     static MAXJOYSTICKDIST = 100;
 
@@ -1141,7 +1142,7 @@ export class UI {
         joystick.background.height = 2*UI.JOYSTICKOUTERRAD + 'px';
         joystick.background.background = UI.JOYSTICKOUTERCOLOR;
         joystick.background.color = UI.JOYSTICKOUTERBOUNDCOLOR;
-        joystick.background.alpha = .5;
+        joystick.background.alpha = UI.JOYSTICKOUTERALPHA;
 
         joystick.stick = new BABYLON.GUI.Ellipse('stick');
         joystick.stick.width = 2*UI.JOYSTICKSTICKRAD + 'px';
