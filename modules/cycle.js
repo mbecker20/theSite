@@ -1,10 +1,8 @@
 import { BF } from './babylonStuff.js';
-import { GF } from './funcClasses.js';
-
 
 export class Cycle {
     // sets up the environment
-    static UNDERBLOCKSIZE = 62;
+    static UNDERBLOCKSIZE = 72;
     static CAMBOUND = Cycle.UNDERBLOCKSIZE/2;
     static NODEDIST = Cycle.CAMBOUND + .1;
     static INTERPCAMMULT = .1;

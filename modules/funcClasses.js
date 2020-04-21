@@ -41,6 +41,14 @@ export class VF {
         return VF.Unit(VF.R(v1,v2));
     }
 
+    static ScaleVecToLength(vec, length) {
+        return math.multiply(VF.Unit(vec), length);
+    }
+
+    static ScaleVecToLength2(vec, mag, length) {
+        return math.multiply(VF.Unit2(vec, mag), length);
+    }
+
     static GetAzimXZ(vec) {
         // ground plane is xz
         // from -pi to pi

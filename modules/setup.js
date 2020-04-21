@@ -1,10 +1,9 @@
-import { UI } from './gui.js';
 import { Cycle } from './cycle.js';
 import { BouncyBall, DancingTHandle, PendVsMass, PendTugOfWar, SpinningRing, MultiPend } from './anims/all.js';
-import { BF, Cam } from './babylonStuff.js';
+import { BF, Cam, UI } from './babylonStuff.js';
 import { MyMats, MySounds } from './resources.js';
 
-window.addEventListener('DOMContentLoaded', function(){
+window.addEventListener('DOMContentLoaded', function() {
     // get the canvas DOM element
     var canvas = document.getElementById('renderCanvas');
 
@@ -13,11 +12,18 @@ window.addEventListener('DOMContentLoaded', function(){
 
     // createScene function that creates and return the scene
     var createScene = function() {
+        // create scene
         var scene = new BABYLON.Scene(engine);
+
+        //initialize sounds object
+        window.sounds = new MySounds(scene);
+
+        // create gui
+        window.gui = UI.MakeGUI(canvas);
         
-        //setup camera
+        // setup camera
         var camPos = BF.Vec3([22, Cycle.UNDERBLOCKSIZE/2+Cam.HEIGHT+1, -22]);
-        window.camera = Cam.MakeCam(camPos, scene, canvas);
+        window.camera = Cam.MakeCam(camPos, scene, canvas, engine);
         //window.camera.setLookDirection([-1,5,0]);
         window.camera.lookAt([0,Cycle.UNDERBLOCKSIZE/2,0]);
 
@@ -27,12 +33,6 @@ window.addEventListener('DOMContentLoaded', function(){
 
         //initialize materials object
         var myMats = new MyMats(scene);
-
-        //initialize sounds object
-        window.sounds = new MySounds(scene);
-
-        //setup gui
-        window.gui = UI.MakeGUI(canvas);
 
         //initialize animation classes
         var shadowQual = 1024;
@@ -78,6 +78,21 @@ window.addEventListener('DOMContentLoaded', function(){
             window.animState.activeAnim.step();
         });
 
+        // control pointer observables
+        scene.onPointerObservable.add((pointerInfo) => {
+            switch (pointerInfo.type) {
+                case BABYLON.PointerEventTypes.POINTERDOWN:
+                    window.camera.virtualController.pointerDown(pointerInfo);
+                    break;
+                case BABYLON.PointerEventTypes.POINTERUP:
+                    window.camera.virtualController.pointerUp(pointerInfo);
+                    break;
+                case BABYLON.PointerEventTypes.POINTERMOVE:
+                    window.camera.virtualController.pointerMove(pointerInfo);
+                    break;
+            }
+        });
+
         return scene;
     }
 
@@ -92,5 +107,6 @@ window.addEventListener('DOMContentLoaded', function(){
     // the canvas/window resize event handler
     window.addEventListener('resize', function(){
         engine.resize();
+        window.camera.virtualController.onResize();
     });
 });

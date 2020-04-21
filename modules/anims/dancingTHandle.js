@@ -1,5 +1,4 @@
-import { BF } from '../babylonStuff.js';
-import { UI } from '../gui.js';
+import { BF, UI } from '../babylonStuff.js';
 import { makePhysBody } from '../physBody.js';
 
 export class DancingTHandle {

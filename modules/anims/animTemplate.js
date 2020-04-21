@@ -1,7 +1,6 @@
-//import { BF } from '../babylonStuff.js';
+//import { BF, Cam, UI } from '../babylonStuff.js';
 //import { Lagrangian } from '../lagrangian.js';
 //import { MF } from '../funcClasses.js';
-//import { UI } from '../gui.js';
 
 export class AnimTemplate {
     constructor(scene, myMats, shadows, gui) {

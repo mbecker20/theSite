@@ -1,6 +1,5 @@
 import { makePhysBody } from '../physBody.js';
 import { BF } from '../babylonStuff.js';
-//import { UI } from './modules/gui.js';
 
 export class RotatingBlock {
     constructor(scene, myMats, shadows) {
