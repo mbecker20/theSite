@@ -1,8 +1,3 @@
-import { Cycle } from './cycle.js';
-import { BouncyBall, DancingTHandle, PendVsMass, PendTugOfWar, SpinningRing, MultiPend } from './anims/all.js';
-import { BF, Cam, UI } from './babylonStuff.js';
-import { MyMats, MySounds } from './resources.js';
-
 window.addEventListener('DOMContentLoaded', function() {
     // get the canvas DOM element
     var canvas = document.getElementById('renderCanvas');
@@ -22,10 +17,10 @@ window.addEventListener('DOMContentLoaded', function() {
         window.gui = UI.MakeGUI(canvas);
         
         // setup camera
-        var camPos = BF.Vec3([22, Cycle.UNDERBLOCKSIZE/2+Cam.HEIGHT+1, -22]);
+        var camPos = BF.Vec3([22, Cycle.UNDERBLOCKSIZE()/2+Cam.HEIGHT()+1, -22]);
         window.camera = Cam.MakeCam(camPos, scene, canvas, engine);
         //window.camera.setLookDirection([-1,5,0]);
-        window.camera.lookAt([0,Cycle.UNDERBLOCKSIZE/2,0]);
+        window.camera.lookAt([0,Cycle.UNDERBLOCKSIZE()/2,0]);
 
         //setup scene environment
         scene.ambientColor = BF.ColorRGB(255,255,255);

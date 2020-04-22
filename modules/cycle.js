@@ -1,21 +1,19 @@
-import { BF } from './babylonStuff.js';
-
-export class Cycle {
+class Cycle {
     // sets up the environment
-    static UNDERBLOCKSIZE = 80;
-    static CAMBOUND = Cycle.UNDERBLOCKSIZE/2;
-    static NODEDIST = Cycle.CAMBOUND + .1;
-    static INTERPCAMMULT = .1;
-    static TARGETROTMAX = Math.PI/2;
-    static INTERPCAMSTEPS = 20; // for loop from 1 to (INTERPCAMSTEPS + 1); targetRot = i * INTERPCAMSTEP
-    static INTERPCAMSTEP = Cycle.TARGETROTMAX/(Cycle.INTERPCAMSTEPS);
+    static UNDERBLOCKSIZE() {return 80};
+    static CAMBOUND() {return Cycle.UNDERBLOCKSIZE()/2};
+    static NODEDIST() {return Cycle.CAMBOUND() + .1};
+    static INTERPCAMMULT() {return .1};
+    static TARGETROTMAX() {return Math.PI/2};
+    static INTERPCAMSTEPS() {return 20}; // for loop from 1 to (INTERPCAMSTEPS + 1); targetRot = i * INTERPCAMSTEP
+    static INTERPCAMSTEP() {return Cycle.TARGETROTMAX()/(Cycle.INTERPCAMSTEPS())}
 
-    static AXES = ['x', 'y', 'z'];
+    static AXES() {return ['x', 'y', 'z']}
 
     constructor(scene, myMats, shadowQual) {
         this.time = 0;
         this.dt = .01;
-        this.orbitR = Cycle.UNDERBLOCKSIZE/2 + 30;
+        this.orbitR = Cycle.UNDERBLOCKSIZE()/2 + 30;
         this.orbitW = .2;
         this.moonW = .5;
         this.skyW = .005;
@@ -58,22 +56,22 @@ export class Cycle {
             var ax1 = this.camModes.activeMode.plane[1];
             var pos0 = window.camera.camMesh.position[ax0];
             var pos1 = window.camera.camMesh.position[ax1];
-            if (pos0 >= Cycle.CAMBOUND) {
+            if (pos0 >= Cycle.CAMBOUND()) {
                 //window.camera.suspendMoveInput = true;
                 this.changingFace = true;
                 this.changeFaceEdge = 'pos'.concat(ax0);
                 window.animState.switchActiveAnim(this.camModes[this.changeFaceEdge].animKey);
-            } else if (pos0 <= -Cycle.CAMBOUND) {
+            } else if (pos0 <= -Cycle.CAMBOUND()) {
                 //window.camera.suspendMoveInput = true;
                 this.changingFace = true;
                 this.changeFaceEdge = 'neg'.concat(ax0);
                 window.animState.switchActiveAnim(this.camModes[this.changeFaceEdge].animKey);
-            } else if (pos1 >= Cycle.CAMBOUND) {
+            } else if (pos1 >= Cycle.CAMBOUND()) {
                 //window.camera.suspendMoveInput = true;
                 this.changingFace = true;
                 this.changeFaceEdge = 'pos'.concat(ax1);
                 window.animState.switchActiveAnim(this.camModes[this.changeFaceEdge].animKey);
-            } else if (pos1 <= -Cycle.CAMBOUND) {
+            } else if (pos1 <= -Cycle.CAMBOUND()) {
                 //window.camera.suspendMoveInput = true;
                 this.changingFace = true;
                 this.changeFaceEdge = 'neg'.concat(ax1);
@@ -83,14 +81,14 @@ export class Cycle {
     }
 
     interpCam() {
-        if (this.interpStep < Cycle.INTERPCAMSTEPS) {
-            this.targetRot += Cycle.INTERPCAMSTEP;
+        if (this.interpStep < Cycle.INTERPCAMSTEPS()) {
+            this.targetRot += Cycle.INTERPCAMSTEP();
             this.interpStep++;
-            var deltaRot = Cycle.INTERPCAMMULT * this.targetRot;
+            var deltaRot = Cycle.INTERPCAMMULT() * this.targetRot;
             window.camera.camMesh.rotate(this.camModes.activeMode[this.changeFaceEdge].rotAxis, deltaRot, BABYLON.Space.WORLD);
             this.targetRot -= deltaRot;
         } else {
-            var deltaRot = Cycle.INTERPCAMMULT * this.targetRot;
+            var deltaRot = Cycle.INTERPCAMMULT() * this.targetRot;
             window.camera.camMesh.rotate(this.camModes.activeMode[this.changeFaceEdge].rotAxis, deltaRot, BABYLON.Space.WORLD);
             this.targetRot -= deltaRot;
             if(this.targetRot < .0001) {
@@ -104,9 +102,9 @@ export class Cycle {
     }
 
     rotCam() {
-        if (this.interpStep < Cycle.INTERPCAMSTEPS) {
+        if (this.interpStep < Cycle.INTERPCAMSTEPS()) {
             this.interpStep++;
-            window.camera.camMesh.rotate(this.camModes.activeMode[this.changeFaceEdge].rotAxis, Cycle.INTERPCAMSTEP, BABYLON.Space.WORLD);
+            window.camera.camMesh.rotate(this.camModes.activeMode[this.changeFaceEdge].rotAxis, Cycle.INTERPCAMSTEP(), BABYLON.Space.WORLD);
         } else {
             this.interpStep = 0;
             //window.camera.suspendMoveInput = false;
@@ -120,24 +118,24 @@ export class Cycle {
         this.modeKeys = ['posy', 'negy', 'posx', 'negx', 'posz', 'negz'];
 
         // setup base modes structure;
-        for (var i = 0; i < Cycle.AXES.length; i++) {
-            var plane = [Cycle.AXES[(i+1)%3], Cycle.AXES[(i+2)%3]];
+        for (var i = 0; i < Cycle.AXES().length; i++) {
+            var plane = [Cycle.AXES()[(i+1)%3], Cycle.AXES()[(i+2)%3]];
             var pos = {};
-            pos['pos'.concat(plane[0])] = {'newModeKey': 'pos'.concat(Cycle.AXES[(i+1)%3])};
-            pos['neg'.concat(plane[0])] = {'newModeKey': 'neg'.concat(Cycle.AXES[(i+1)%3])};
-            pos['pos'.concat(plane[1])] = {'newModeKey': 'pos'.concat(Cycle.AXES[(i+2)%3])};
-            pos['neg'.concat(plane[1])] = {'newModeKey': 'neg'.concat(Cycle.AXES[(i+2)%3])};
+            pos['pos'.concat(plane[0])] = {'newModeKey': 'pos'.concat(Cycle.AXES()[(i+1)%3])};
+            pos['neg'.concat(plane[0])] = {'newModeKey': 'neg'.concat(Cycle.AXES()[(i+1)%3])};
+            pos['pos'.concat(plane[1])] = {'newModeKey': 'pos'.concat(Cycle.AXES()[(i+2)%3])};
+            pos['neg'.concat(plane[1])] = {'newModeKey': 'neg'.concat(Cycle.AXES()[(i+2)%3])};
             pos.plane = plane;
 
             var neg = {};
-            neg['pos'.concat(plane[0])] = {'newModeKey': 'pos'.concat(Cycle.AXES[(i+1)%3])};
-            neg['neg'.concat(plane[0])] = {'newModeKey': 'neg'.concat(Cycle.AXES[(i+1)%3])};
-            neg['pos'.concat(plane[1])] = {'newModeKey': 'pos'.concat(Cycle.AXES[(i+2)%3])};
-            neg['neg'.concat(plane[1])] = {'newModeKey': 'neg'.concat(Cycle.AXES[(i+2)%3])};
+            neg['pos'.concat(plane[0])] = {'newModeKey': 'pos'.concat(Cycle.AXES()[(i+1)%3])};
+            neg['neg'.concat(plane[0])] = {'newModeKey': 'neg'.concat(Cycle.AXES()[(i+1)%3])};
+            neg['pos'.concat(plane[1])] = {'newModeKey': 'pos'.concat(Cycle.AXES()[(i+2)%3])};
+            neg['neg'.concat(plane[1])] = {'newModeKey': 'neg'.concat(Cycle.AXES()[(i+2)%3])};
             neg.plane = plane;
 
-            this.camModes['pos'.concat(Cycle.AXES[i])] = pos;
-            this.camModes['neg'.concat(Cycle.AXES[i])] = neg;
+            this.camModes['pos'.concat(Cycle.AXES()[i])] = pos;
+            this.camModes['neg'.concat(Cycle.AXES()[i])] = neg;
         }
 
         this.camModes.posx.posy.rotAxis = BF.Vec3([0,0,1]);
@@ -176,27 +174,27 @@ export class Cycle {
 
     makeAnimNodes(scene) {
         this.camModes.posy.node = BF.MakeTransformNode('posy', scene);
-        this.camModes.posy.node.position.y = Cycle.NODEDIST;
+        this.camModes.posy.node.position.y = Cycle.NODEDIST();
 
         this.camModes.negy.node = BF.MakeTransformNode('negy', scene);
         this.camModes.negy.node.rotation.x = Math.PI;
-        this.camModes.negy.node.position.y = -Cycle.NODEDIST;
+        this.camModes.negy.node.position.y = -Cycle.NODEDIST();
 
         this.camModes.posx.node = BF.MakeTransformNode('posx', scene);
         this.camModes.posx.node.rotation.z = -Math.PI/2;
-        this.camModes.posx.node.position.x = Cycle.NODEDIST;
+        this.camModes.posx.node.position.x = Cycle.NODEDIST();
 
         this.camModes.negx.node = BF.MakeTransformNode('negx', scene);
         this.camModes.negx.node.rotation.z = Math.PI/2;
-        this.camModes.negx.node.position.x = -Cycle.NODEDIST;
+        this.camModes.negx.node.position.x = -Cycle.NODEDIST();
 
         this.camModes.posz.node = BF.MakeTransformNode('posz', scene);
         this.camModes.posz.node.rotation.x = Math.PI/2;
-        this.camModes.posz.node.position.z = Cycle.NODEDIST;
+        this.camModes.posz.node.position.z = Cycle.NODEDIST();
 
         this.camModes.negz.node = BF.MakeTransformNode('negz', scene);
         this.camModes.negz.node.rotation.x = -Math.PI/2;
-        this.camModes.negz.node.position.z = -Cycle.NODEDIST;
+        this.camModes.negz.node.position.z = -Cycle.NODEDIST();
     }
 
     addAnimsToCycle(anims) {
@@ -253,7 +251,7 @@ export class Cycle {
         //place axes at origin for reference during development
         //var worldAxes = BF.MakeAxes('worldAxes', scene, 4);
 
-        this.underBlock = BABYLON.MeshBuilder.CreateBox('underBlock', {size: Cycle.UNDERBLOCKSIZE}, scene);
+        this.underBlock = BABYLON.MeshBuilder.CreateBox('underBlock', {size: Cycle.UNDERBLOCKSIZE()}, scene);
         this.underBlock.material = myMats.darkMoon;
         this.underBlock.receiveShadows = true;
 

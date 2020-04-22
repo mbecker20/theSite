@@ -1,6 +1,4 @@
-import { BF } from './babylonStuff.js';
-
-export class VF {
+class VF {
     // Vector Functions
     static Mag(vec) {
         return math.sqrt(math.dot(vec,vec));
@@ -316,7 +314,7 @@ export class VF {
     }
 }
 
-export class Rot {
+class Rot {
     // 3D Rotatation Funcs
     static quatMultReal(q1Real,q1Vect,q2Real,q2Vect) {
         return q1Real*q2Real-q1Vect[0]*q2Vect[0]-q1Vect[1]*q2Vect[1]-q1Vect[2]*q2Vect[2];
@@ -366,7 +364,7 @@ export class Rot {
     }
 }
 
-export class PF {
+class PF {
     //Phys Funcs
     static MoveToCOM(mesh) {
         // translates mesh so local origin at COM
@@ -432,7 +430,7 @@ export class PF {
     }
 }
 
-export class MF {
+class MF {
     // math Funcs
     static MakeDerivFunc(func, dx = .01) {
         // func is func of 1 number variable
@@ -502,7 +500,7 @@ export class MF {
     }
 }
 
-export class GF {
+class GF {
     // General Funcs
     static DownOne(func, prop, val) {
         // works with func(p), where p is parameter object
@@ -561,7 +559,7 @@ export class GF {
     }
 }
 
-export class FuncBuffer {
+class FuncBuffer {
     constructor() {
         this.funcBuff={};
     }

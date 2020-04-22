@@ -1,6 +1,4 @@
-import { VF, MF } from './funcClasses.js';
-
-export class BF {
+class BF {
     // mesh constructors
     static MakeBox(name, scene, width, height, depth, otherParams = {}, receiveShadows = true) {
         // params: length, width, height,...
@@ -399,43 +397,46 @@ export class BF {
     }
 }
 
-export class Cam {
+class Cam {
 
-    static HEIGHT = 12;
+    static HEIGHT() {return 12};
 
-    static TARGETPOSITIONSTEP = .35;
-    static MOVEINTERPMULT = .3;
+    static TARGETPOSITIONSTEP() {return .35;}
+    static KBMOVEINTERPMULT() {return .08}
 
-    static TARGETROTATIONSTEP = .05;
-    static ROTINTERPMULT = .3;
+    static TARGETROTATIONSTEP() {return .05}
+    static KBROTINTERPMULT() {return .08}
 
-    static MINALT = -.8 * Math.PI/2;
-    static MAXALT = .8 * Math.PI/2;
+    static MINALT() {return -.8 * Math.PI/2}
+    static MAXALT() {return .8 * Math.PI/2}
 
-    static GRAVITY = .01;
-    static JUMPV = .4;
-    static BOUNCEACCELDOWN = .04; // delta jumpV when jumpV < 0 during bounce
-    static BOUNCEINTERPMULT = .1;
+    static GRAVITY() {return .01}
+    static JUMPV() {return .4}
+    static BOUNCEACCELDOWN() {return .04}// delta jumpV when jumpV < 0 during bounce
+    static BOUNCEINTERPMULT() {return .1}
 
-    static CROUCHHEIGHT = 4; // height cam goes to when crouching
-    static CROUCHSTEP = .2;
-    static CROUCHINTERPMULT = .2;
+    static CROUCHHEIGHT() {return 4} // height cam goes to when crouching
+    static CROUCHSTEP() {return .2}
+    static CROUCHINTERPMULT() {return .2}
 
-    static JOYSTICKMOVEMULT = .05; // delta target step = joystickmovemult * (stickpos - centerpos)
-    static JOYSTICKROTMULT = .004;
+    static JOYSTICKMOVEMULT() {return .05} // delta target step = joystickmovemult * (stickpos - centerpos)
+    static JOYSTICKMOVEINTERPMULT() {return .3}
+
+    static JOYSTICKROTMULT() {return .004}
+    static JOYSTICKROTINTERPMULT() {return .3}
 
     static MakeCam(camPos, scene, canvas, engine) {
         var cam = new BABYLON.TargetCamera('camera', BF.ZeroVec3(), scene);
 
         cam.setupCam = function() {
             // make and parent camMesh to cam
-            cam.camMesh = BF.MakeBox('camMesh', scene, 1, Cam.HEIGHT + .5, 1);
-            cam.camMesh.locallyTranslate(BF.Vec3([0, (Cam.HEIGHT + .5)/2, 0]));
+            cam.camMesh = BF.MakeBox('camMesh', scene, 1, Cam.HEIGHT() + .5, 1);
+            cam.camMesh.locallyTranslate(BF.Vec3([0, (Cam.HEIGHT() + .5)/2, 0]));
             BF.BakeMeshs([cam.camMesh]);
-            camPos.y -= Cam.HEIGHT;
+            camPos.y -= Cam.HEIGHT();
             cam.camMesh.position = camPos;
             cam.parent = cam.camMesh;
-            cam.position.y = Cam.HEIGHT;
+            cam.position.y = Cam.HEIGHT();
 
             // make input manager
             cam.inputs = new BABYLON.CameraInputsManager(cam);
@@ -449,23 +450,25 @@ export class Cam {
 
             // this contains position cam moving to, expressed locally
             // x forward, y side. no movement has targetPos at [0,0]
-            cam.targetPos = BF.Vec2([0,0]);
+            cam.kbTargetPos = BF.Vec2([0,0]);
 
             // initialize vector to be set and added to position
             cam.deltaPos = BF.ZeroVec3(); 
 
-            cam.forwardV = 0;
-            cam.sideV = 0;
+            cam.kbForwardV = 0;
+            cam.kbSideV = 0;
 
             // setup rotation
 
             // rotation target is moved to. cam is rotated about cam local x axis by alt
             // camMesh is rotated about world y axis by azim
             cam.upVec = BF.Vec3([0,1,0]);
-            cam.targetRot = BF.Vec2([0,0]); // first comp is alt, second is azim
-
+            cam.kbTargetRot = BF.Vec2([0,0]); // first comp is alt, second is azim
             cam.deltaAlt = 0;
             cam.deltaAzim = 0;
+
+            cam.kbDeltaAlt = 0;
+            cam.kbDeltaAzim = 0;
 
             //setup jumping
             cam.ground = null; // set this once the ground mesh is created;
@@ -477,27 +480,46 @@ export class Cam {
 
             // setup crouching
             cam.crouchV = 0;
-            cam.targetCrouch = Cam.HEIGHT;
+            cam.targetCrouch = Cam.HEIGHT();
 
             // to disable kb movement input
             cam.suspendMoveInput = false;
 
             // setup virtual joystick input
             cam.virtualController = UI.MakeVirtualJoystickController(window.gui, engine);
+            cam.jsTargetPos = BF.Vec2([0,0]);
+            cam.jsForwardV = 0;
+            cam.jsSideV = 0;
+
+            cam.jsTargetRot = BF.Vec2([0,0]);
+            cam.jsDeltaAlt = 0;
+            cam.jsDeltaAzim = 0;
         }
         
         cam.setupCam();
 
         // set methods
         cam.moveToTarget = function() {
-            cam.forwardV = Cam.MOVEINTERPMULT * cam.targetPos.x;
-            cam.sideV = Cam.MOVEINTERPMULT * cam.targetPos.y;
-            cam.camMesh.locallyTranslate(BF.SetVec3([cam.sideV, cam.jumpV, cam.forwardV], cam.deltaPos));
+            cam.kbMoveToTarget();
+            cam.jsMoveToTarget();
+            cam.camMesh.locallyTranslate(BF.SetVec3([cam.kbSideV + cam.jsSideV, cam.jumpV, cam.kbForwardV + cam.jsForwardV], cam.deltaPos));
             cam.position.y += cam.crouchV + cam.bounceV;
             cam.updateJump();
             cam.updateBounce();
-            cam.targetPos.x -= cam.forwardV;
-            cam.targetPos.y -= cam.sideV;
+        }
+
+        cam.kbMoveToTarget = function() {
+            cam.kbForwardV = Cam.KBMOVEINTERPMULT() * cam.kbTargetPos.x;
+            cam.kbSideV = Cam.KBMOVEINTERPMULT() * cam.kbTargetPos.y;
+            cam.kbTargetPos.x -= cam.kbForwardV;
+            cam.kbTargetPos.y -= cam.kbSideV;
+        }
+
+        cam.jsMoveToTarget = function() {
+            cam.jsForwardV = Cam.JOYSTICKMOVEINTERPMULT() * cam.jsTargetPos.x;
+            cam.jsSideV = Cam.JOYSTICKMOVEINTERPMULT() * cam.jsTargetPos.y;
+            cam.jsTargetPos.x -= cam.jsForwardV;
+            cam.jsTargetPos.y -= cam.jsSideV;
         }
 
         cam.updateJump = function() {
@@ -509,7 +531,7 @@ export class Cam {
                     cam.onGround = true;
                     cam.bounceOnGround = true;
                 } else {
-                    cam.jumpV -= Cam.GRAVITY;
+                    cam.jumpV -= Cam.GRAVITY();
                 }
             }
         }
@@ -517,10 +539,10 @@ export class Cam {
         cam.updateBounce = function() {
             if (cam.bounceOnGround) {
                 if (cam.bounceV < 0) { // on its way down
-                    cam.bounceV += Cam.BOUNCEACCELDOWN;
+                    cam.bounceV += Cam.BOUNCEACCELDOWN();
                 } else { // on its way up
                     var dist = cam.targetCrouch - cam.position.y;
-                    cam.bounceV = Cam.BOUNCEINTERPMULT * dist;
+                    cam.bounceV = Cam.BOUNCEINTERPMULT() * dist;
                     if(dist < 0.01) {
                         cam.bounceOnGround = false;
                         cam.bounceV = 0;
@@ -533,7 +555,7 @@ export class Cam {
             if (cam.bounceOnGround) {
                 cam.crouchV = 0;
             } else {
-                cam.crouchV = Cam.CROUCHINTERPMULT * (cam.targetCrouch - cam.position.y);
+                cam.crouchV = Cam.CROUCHINTERPMULT() * (cam.targetCrouch - cam.position.y);
             }
             
         }
@@ -543,22 +565,39 @@ export class Cam {
         }
 
         cam.rotToTarget = function() {
-            cam.deltaAlt = Cam.ROTINTERPMULT * cam.targetRot.x;
+            cam.kbRotToTarget();
+            cam.jsRotToTarget();
+
+            cam.deltaAlt = cam.kbDeltaAlt + cam.jsDeltaAlt;
             cam.rotation.x += cam.deltaAlt;
-            cam.targetRot.x -= cam.deltaAlt;
             cam.boundAlt();
             
-            cam.deltaAzim = Cam.ROTINTERPMULT * cam.targetRot.y;
+            cam.deltaAzim = cam.kbDeltaAzim + cam.jsDeltaAzim;
             cam.camMesh.rotate(cam.upVec, cam.deltaAzim, BABYLON.Space.LOCAL);
-            cam.targetRot.y -= cam.deltaAzim;
+        }
+
+        cam.kbRotToTarget = function() {
+            cam.kbDeltaAlt = Cam.KBROTINTERPMULT() * cam.kbTargetRot.x;
+            cam.kbTargetRot.x -= cam.kbDeltaAlt;
+            
+            cam.kbDeltaAzim = Cam.KBROTINTERPMULT() * cam.kbTargetRot.y;
+            cam.kbTargetRot.y -= cam.kbDeltaAzim;
+        }
+
+        cam.jsRotToTarget = function() {
+            cam.jsDeltaAlt = Cam.JOYSTICKROTINTERPMULT() * cam.jsTargetRot.x;
+            cam.jsTargetRot.x -= cam.jsDeltaAlt;
+            
+            cam.jsDeltaAzim = Cam.JOYSTICKROTINTERPMULT() * cam.jsTargetRot.y;
+            cam.jsTargetRot.y -= cam.jsDeltaAzim;
         }
 
         cam.boundAlt = function() {
-            if (cam.rotation.x > Cam.MAXALT) {
-                cam.rotation.x = Cam.MAXALT;
+            if (cam.rotation.x > Cam.MAXALT()) {
+                cam.rotation.x = Cam.MAXALT();
                 cam.targetRot.x = 0;
-            } else if (cam.rotation.x < Cam.MINALT) {
-                cam.rotation.x = Cam.MINALT;
+            } else if (cam.rotation.x < Cam.MINALT()) {
+                cam.rotation.x = Cam.MINALT();
                 cam.targetRot.x = 0;
             }
         }
@@ -574,7 +613,7 @@ export class Cam {
             // this only works if done during initialization. after first step, rotationQuaternion is being used instead of rotation
             const unit = VF.Unit(ar3);
             const altAzim = VF.GetAltAzimZX(unit);
-            cam.rotation.x = MF.Clamp(altAzim[0], Cam.MINALT, Cam.MAXALT);
+            cam.rotation.x = MF.Clamp(altAzim[0], Cam.MINALT(), Cam.MAXALT());
             cam.camMesh.rotation.y = altAzim[1];
         }
 
@@ -585,13 +624,13 @@ export class Cam {
 
         cam.joystickCheck = function() {
             if (cam.virtualController.leftFingerDown) {
-                var leftDelta = math.multiply(VF.ScaleVecToLength(cam.virtualController.leftStickLocal, Math.sqrt(VF.Mag(cam.virtualController.leftStickLocal))), Cam.JOYSTICKMOVEMULT);
-                cam.targetPos.x -= leftDelta[1];
-                cam.targetPos.y += leftDelta[0];
+                var leftDelta = math.multiply(VF.ScaleVecToLength(cam.virtualController.leftStickLocal, Math.sqrt(VF.Mag(cam.virtualController.leftStickLocal))), Cam.JOYSTICKMOVEMULT());
+                cam.jsTargetPos.x -= leftDelta[1];
+                cam.jsTargetPos.y += leftDelta[0];
             } if (cam.virtualController.rightFingerDown) {
-                var rightDelta = math.multiply(VF.ScaleVecToLength(cam.virtualController.rightStickLocal, Math.sqrt(VF.Mag(cam.virtualController.rightStickLocal))), Cam.JOYSTICKROTMULT);
-                cam.targetRot.x += rightDelta[1];
-                cam.targetRot.y += rightDelta[0];
+                var rightDelta = math.multiply(VF.ScaleVecToLength(cam.virtualController.rightStickLocal, Math.sqrt(VF.Mag(cam.virtualController.rightStickLocal))), Cam.JOYSTICKROTMULT());
+                cam.jsTargetRot.x += rightDelta[1];
+                cam.jsTargetRot.y += rightDelta[0];
             }
         }
 
@@ -696,13 +735,13 @@ export class Cam {
                 for (var index = 0; index < this._keys.length; index++) {
                     var keyCode = this._keys[index];
                     if (this.keysLeft.indexOf(keyCode) !== -1) {
-                        cam.targetRot.y -= Cam.TARGETROTATIONSTEP;
+                        cam.kbTargetRot.y -= Cam.TARGETROTATIONSTEP();
                     } else if (this.keysRight.indexOf(keyCode) !== -1) {
-                        cam.targetRot.y += Cam.TARGETROTATIONSTEP;
+                        cam.kbTargetRot.y += Cam.TARGETROTATIONSTEP();
                     } if (this.keysUp.indexOf(keyCode) !== -1) {
-                        cam.targetRot.x -= Cam.TARGETROTATIONSTEP;
+                        cam.kbTargetRot.x -= Cam.TARGETROTATIONSTEP();
                     } else if (this.keysDown.indexOf(keyCode) !== -1) {
-                        cam.targetRot.x += Cam.TARGETROTATIONSTEP;
+                        cam.kbTargetRot.x += Cam.TARGETROTATIONSTEP();
                     } if (this.keysZoomIn.indexOf(keyCode) !== -1) {
                         cam.fov -= this.deltaFOV;
                         cam.fov = Math.max(cam.fov, this.fovMin);
@@ -810,66 +849,66 @@ export class Cam {
                     for (var index = 0; index < this._keys.length; index++) {
                         var keyCode = this._keys[index];
                         if (this.keysLeft.indexOf(keyCode) !== -1) {
-                            cam.targetPos.y -= Cam.TARGETPOSITIONSTEP;
+                            cam.kbTargetPos.y -= Cam.TARGETPOSITIONSTEP();
                         } else if (this.keysRight.indexOf(keyCode) !== -1) {
-                            cam.targetPos.y += Cam.TARGETPOSITIONSTEP;
+                            cam.kbTargetPos.y += Cam.TARGETPOSITIONSTEP();
                         } if (this.keysForward.indexOf(keyCode) !== -1) {
-                            cam.targetPos.x += Cam.TARGETPOSITIONSTEP;
+                            cam.kbTargetPos.x += Cam.TARGETPOSITIONSTEP();
                         } else if (this.keysBack.indexOf(keyCode) !== -1) {
-                            cam.targetPos.x -= Cam.TARGETPOSITIONSTEP;
+                            cam.kbTargetPos.x -= Cam.TARGETPOSITIONSTEP();
                         } if (this.keysJump.indexOf(keyCode) !== -1) {
                             if(cam.onGround) {
-                                cam.jumpV = Cam.JUMPV;
+                                cam.jumpV = Cam.JUMPV();
                                 cam.onGround = false;
                                 cam.bounceOnGround = false;
                                 cam.bounceDist = 0;
                             }
                         } else if (this.keysCrouch.indexOf(keyCode) !== -1) {
-                            cam.targetCrouch = math.max(cam.targetCrouch - 2*Cam.CROUCHSTEP, Cam.CROUCHHEIGHT-Cam.CROUCHSTEP);
+                            cam.targetCrouch = math.max(cam.targetCrouch - 2*Cam.CROUCHSTEP(), Cam.CROUCHHEIGHT()-Cam.CROUCHSTEP());
                         }
                     }
                 }
             }
-            cam.targetCrouch = math.min(cam.targetCrouch + Cam.CROUCHSTEP, Cam.HEIGHT); // always runs to return targetCrouch to 0
+            cam.targetCrouch = math.min(cam.targetCrouch + Cam.CROUCHSTEP(), Cam.HEIGHT()); // always runs to return targetCrouch to 0
         };
     
         return new kbMoveInput();
     }
 }
 
-export class UI {
-    static SPACING = '15px';
+class UI {
+    static SPACING() {return '15px'};
     
     // standard width height
-    static STANDARDW = '200px';
-    static STANDARDH = '40px';
+    static STANDARDW() {return '200px'};
+    static STANDARDH() {return '40px'};
 
-    static SMALLW = '110px';
-    static SMALLH = '30px';
+    static SMALLW() {return '110px'};
+    static SMALLH() {return '30px'};
 
-    static SVWIDTH = '270px';
-    static SVHEIGHT = '300px';
-    static SVBARSIZE = 15;
+    static SVWIDTH() {return '270px'};
+    static SVHEIGHT() {return '300px'};
+    static SVBARSIZE() {return 15};
 
-    static SUBMENUW = '250px';
+    static SUBMENUW() {return '250px'};
 
-    static HOWTOTEXTW = '250px';
-    static HOWTOTEXTH = '22px';
-    static HOWTOTEXTSIZE = 18;
+    static HOWTOTEXTW() {return '250px'};
+    static HOWTOTEXTH() {return '22px'};
+    static HOWTOTEXTSIZE() {return 18};
 
-    static SLIDERHEADERH = '26px';
-    static SLIDERH = '30px';
+    static SLIDERHEADERH() {return '26px'};
+    static SLIDERH() {return '30px'};
 
-    static JOYSTICKOUTERRAD = 80;
-    static JOYSTICKOUTERCOLOR = 'grey';
-    static JOYSTICKOUTERBOUNDCOLOR = 'grey';
-    static JOYSTICKOUTERALPHA = .5;
+    static JOYSTICKOUTERRAD() {return 80};
+    static JOYSTICKOUTERCOLOR() {return 'grey'};
+    static JOYSTICKOUTERBOUNDCOLOR() {return 'grey'};
+    static JOYSTICKOUTERALPHA() {return .5};
     
-    static JOYSTICKSTICKRAD = 50;
-    static JOYSTICKSTICKCOLOR = 'black';
-    static JOYSTICKSTICKBOUNDCOLOR = 'black';
+    static JOYSTICKSTICKRAD() {return 50};
+    static JOYSTICKSTICKCOLOR() {return 'black'};
+    static JOYSTICKSTICKBOUNDCOLOR() {return 'black'};
 
-    static MAXJOYSTICKDIST = 85;
+    static MAXJOYSTICKDIST() {return 85};
 
     // makes the main gui object
     static MakeGUI(canvas) {
@@ -999,7 +1038,7 @@ export class UI {
         
         menu.svPanel = UI.MakePanel(true, false, false);
         //menu.svPanel.background = 'white';
-        menu.svPanel.width = UI.SUBMENUW;
+        menu.svPanel.width = UI.SUBMENUW();
         menu.sv.addControl(menu.svPanel);
 
         menu.panel.top = 30;
@@ -1107,30 +1146,30 @@ export class UI {
         var htMenu = UI.MakeSubMenu('how to use', gui.mainMenu, gui, 'how to use');
         var controls = [];
 
-        var htText00 = UI.MakeTextBlock('move the viewer with', UI.HOWTOTEXTSIZE);
-        var htText01 = UI.MakeTextBlock('W, A, S, and D keys', UI.HOWTOTEXTSIZE);
-        var htText02 = UI.MakeTextBlock('spacebar moves viewer up', UI.HOWTOTEXTSIZE);
-        var htText03 = UI.MakeTextBlock('and shift moves down', UI.HOWTOTEXTSIZE);
+        var htText00 = UI.MakeTextBlock('move the viewer with', UI.HOWTOTEXTSIZE());
+        var htText01 = UI.MakeTextBlock('W, A, S, and D keys', UI.HOWTOTEXTSIZE());
+        var htText02 = UI.MakeTextBlock('spacebar moves viewer up', UI.HOWTOTEXTSIZE());
+        var htText03 = UI.MakeTextBlock('and shift moves down', UI.HOWTOTEXTSIZE());
         htMenu.addControls(['spacer', 'htText00', 'htText01'], [UI.MakeVertSpacer(), htText00, htText01], false);
         htMenu.addControls(['spacer', 'htText02', 'htText03'], [UI.MakeVertSpacer(), htText02, htText03], false);
         controls.push(htText00, htText01, htText02, htText03);
 
-        var htText10 = UI.MakeTextBlock('look around with', UI.HOWTOTEXTSIZE);
-        var htText11 = UI.MakeTextBlock('I, J, K, and L keys', UI.HOWTOTEXTSIZE);
+        var htText10 = UI.MakeTextBlock('look around with', UI.HOWTOTEXTSIZE());
+        var htText11 = UI.MakeTextBlock('I, J, K, and L keys', UI.HOWTOTEXTSIZE());
         htMenu.addControls(['spacer', 'htText10', 'htText11'], [UI.MakeVertSpacer(), htText10, htText11], false);
         controls.push(htText10, htText11);
 
-        var htText20 = UI.MakeTextBlock('control field of view with', UI.HOWTOTEXTSIZE);
-        var htText21 = UI.MakeTextBlock('9 and 0 (zero) keys', UI.HOWTOTEXTSIZE);
+        var htText20 = UI.MakeTextBlock('control field of view with', UI.HOWTOTEXTSIZE());
+        var htText21 = UI.MakeTextBlock('9 and 0 (zero) keys', UI.HOWTOTEXTSIZE());
         htMenu.addControls(['spacer', 'htText20', 'htText21'], [UI.MakeVertSpacer(), htText20, htText21], false);
         controls.push(htText20, htText21);
 
-        var htText30 = UI.MakeTextBlock('experiment with sim settings', UI.HOWTOTEXTSIZE);
-        var htText31 = UI.MakeTextBlock('for each simulation', UI.HOWTOTEXTSIZE);
+        var htText30 = UI.MakeTextBlock('experiment with sim settings', UI.HOWTOTEXTSIZE());
+        var htText31 = UI.MakeTextBlock('for each simulation', UI.HOWTOTEXTSIZE());
         htMenu.addControls(['spacer', 'htText30', 'htText31'], [UI.MakeVertSpacer(), htText30, htText31], false);
         controls.push(htText30, htText31);
 
-        UI.SetControlsWidthHeight(controls, UI.HOWTOTEXTW, UI.HOWTOTEXTH);
+        UI.SetControlsWidthHeight(controls, UI.HOWTOTEXTW(), UI.HOWTOTEXTH());
 
         gui.mainMenu.addSubMenu(htMenu);
     }
@@ -1138,17 +1177,17 @@ export class UI {
     static MakeVirtualJoystick(gui) {
         var joystick = {};
         joystick.background = new BABYLON.GUI.Ellipse('background');
-        joystick.background.width = 2*UI.JOYSTICKOUTERRAD + 'px';
-        joystick.background.height = 2*UI.JOYSTICKOUTERRAD + 'px';
-        joystick.background.background = UI.JOYSTICKOUTERCOLOR;
-        joystick.background.color = UI.JOYSTICKOUTERBOUNDCOLOR;
-        joystick.background.alpha = UI.JOYSTICKOUTERALPHA;
+        joystick.background.width = 2*UI.JOYSTICKOUTERRAD() + 'px';
+        joystick.background.height = 2*UI.JOYSTICKOUTERRAD() + 'px';
+        joystick.background.background = UI.JOYSTICKOUTERCOLOR();
+        joystick.background.color = UI.JOYSTICKOUTERBOUNDCOLOR();
+        joystick.background.alpha = UI.JOYSTICKOUTERALPHA();
 
         joystick.stick = new BABYLON.GUI.Ellipse('stick');
-        joystick.stick.width = 2*UI.JOYSTICKSTICKRAD + 'px';
-        joystick.stick.height = 2*UI.JOYSTICKSTICKRAD + 'px';
-        joystick.stick.background = UI.JOYSTICKSTICKCOLOR;
-        joystick.stick.color = UI.JOYSTICKSTICKBOUNDCOLOR;
+        joystick.stick.width = 2*UI.JOYSTICKSTICKRAD() + 'px';
+        joystick.stick.height = 2*UI.JOYSTICKSTICKRAD() + 'px';
+        joystick.stick.background = UI.JOYSTICKSTICKCOLOR();
+        joystick.stick.color = UI.JOYSTICKSTICKBOUNDCOLOR();
 
         UI.AlignControlsTopLeft([joystick.background, joystick.stick]);
 
@@ -1225,8 +1264,8 @@ export class UI {
                 controller.leftStickPos = [pointerInfo.event.x, pointerInfo.event.y];
                 controller.leftStickLocal = VF.R(controller.leftCenterPos, controller.leftStickPos)
                 var mag = VF.Mag(controller.leftStickLocal);
-                if (mag > UI.MAXJOYSTICKDIST) {
-                    controller.leftStickLocal = VF.ScaleVecToLength2(controller.leftStickLocal, mag, UI.MAXJOYSTICKDIST);
+                if (mag > UI.MAXJOYSTICKDIST()) {
+                    controller.leftStickLocal = VF.ScaleVecToLength2(controller.leftStickLocal, mag, UI.MAXJOYSTICKDIST());
                     controller.leftStickPos = math.add(controller.leftCenterPos, controller.leftStickLocal);
                 }
                 controller.setJoystickPosition('left');
@@ -1234,8 +1273,8 @@ export class UI {
                 controller.rightStickPos = [pointerInfo.event.x, pointerInfo.event.y];
                 controller.rightStickLocal = VF.R(controller.rightCenterPos, controller.rightStickPos)
                 var mag = VF.Mag(controller.rightStickLocal);
-                if (mag > UI.MAXJOYSTICKDIST) {
-                    controller.rightStickLocal = VF.ScaleVecToLength2(controller.rightStickLocal, mag, UI.MAXJOYSTICKDIST);
+                if (mag > UI.MAXJOYSTICKDIST()) {
+                    controller.rightStickLocal = VF.ScaleVecToLength2(controller.rightStickLocal, mag, UI.MAXJOYSTICKDIST());
                     controller.rightStickPos = math.add(controller.rightCenterPos, controller.rightStickLocal);
                 }
                 controller.setJoystickPosition('right');
@@ -1250,17 +1289,17 @@ export class UI {
         controller.setJoystickBackgroundPosition = function(side) {
             // side is 'left' or 'right'
             // sets both stick and background position
-            controller[side.concat('Joystick')].background.left = (controller[side.concat('CenterPos')][0] - UI.JOYSTICKOUTERRAD) + 'px';
-            controller[side.concat('Joystick')].background.top = (controller[side.concat('CenterPos')][1] - UI.JOYSTICKOUTERRAD) + 'px';
-            controller[side.concat('Joystick')].stick.left = (controller[side.concat('StickPos')][0] - UI.JOYSTICKSTICKRAD) + 'px';
-            controller[side.concat('Joystick')].stick.top = (controller[side.concat('StickPos')][1] - UI.JOYSTICKSTICKRAD) + 'px';
+            controller[side.concat('Joystick')].background.left = (controller[side.concat('CenterPos')][0] - UI.JOYSTICKOUTERRAD()) + 'px';
+            controller[side.concat('Joystick')].background.top = (controller[side.concat('CenterPos')][1] - UI.JOYSTICKOUTERRAD()) + 'px';
+            controller[side.concat('Joystick')].stick.left = (controller[side.concat('StickPos')][0] - UI.JOYSTICKSTICKRAD()) + 'px';
+            controller[side.concat('Joystick')].stick.top = (controller[side.concat('StickPos')][1] - UI.JOYSTICKSTICKRAD()) + 'px';
         }
 
         controller.setJoystickPosition = function(side) {
             // side is 'left' or 'right'
             // sets only stick position
-            controller[side.concat('Joystick')].stick.left = (controller[side.concat('StickPos')][0] - UI.JOYSTICKSTICKRAD) + 'px';
-            controller[side.concat('Joystick')].stick.top = (controller[side.concat('StickPos')][1] - UI.JOYSTICKSTICKRAD) + 'px';
+            controller[side.concat('Joystick')].stick.left = (controller[side.concat('StickPos')][0] - UI.JOYSTICKSTICKRAD()) + 'px';
+            controller[side.concat('Joystick')].stick.top = (controller[side.concat('StickPos')][1] - UI.JOYSTICKSTICKRAD()) + 'px';
         }
 
         controller.onResize();
@@ -1291,7 +1330,7 @@ export class UI {
         UI.AdaptContainerWidth(sliderPanel);
 
         var header = UI.MakeTextBlock(headerText + ': ' + initVal + ' ' + unit, 20);
-        header.height = UI.SLIDERHEADERH;
+        header.height = UI.SLIDERHEADERH();
         header.width = '250px';
 
 
@@ -1303,7 +1342,7 @@ export class UI {
             header.text = headerText + ': ' + math.round(10*value)/10 + ' ' + unit;
             valChangeFn(value);
         });
-        slider.height = UI.SLIDERH;
+        slider.height = UI.SLIDERH();
         slider.width = '250px';
         slider.color = 'grey'
         slider.background = 'black'
@@ -1341,7 +1380,7 @@ export class UI {
         UI.AdaptContainerWidth(sliderPanel);
 
         var header = UI.MakeTextBlock(headerText + ': ' + initVal + ' ' + unit, 20);
-        header.height = UI.SLIDERHEADERH;
+        header.height = UI.SLIDERHEADERH();
         header.width = '250px';
 
 
@@ -1353,7 +1392,7 @@ export class UI {
             header.text = headerText + ': ' + math.round(100*value)/100 + ' ' + unit;
             valChangeFn(value);
         });
-        slider.height = UI.SLIDERH;
+        slider.height = UI.SLIDERH();
         slider.width = '250px';
         slider.color = 'grey'
         slider.background = 'black'
@@ -1391,7 +1430,7 @@ export class UI {
         UI.AdaptContainerWidth(sliderPanel);
 
         var header = UI.MakeTextBlock(headerText + ': ' + initVal + ' ' + unit, 20);
-        header.height = UI.SLIDERHEADERH;
+        header.height = UI.SLIDERHEADERH();
         header.width = '250px';
 
 
@@ -1403,7 +1442,7 @@ export class UI {
             header.text = headerText + ': ' + Math.round(value) + ' ' + unit;
             valChangeFn(Math.round(value));
         });
-        slider.height = UI.SLIDERH;
+        slider.height = UI.SLIDERH();
         slider.width = '250px';
         slider.color = 'grey';
         slider.background = 'black';
@@ -1443,9 +1482,9 @@ export class UI {
     static MakeTwoButtonPanel(name0, text0, f0, name1, text1, f1) {
         var tbPanel = UI.MakePanel(false);
         var but0 = UI.MakeButton(name0, text0, f0);
-        but0.width = UI.SMALLW;
+        but0.width = UI.SMALLW();
         var but1 = UI.MakeButton(name1, text1, f1);
-        but1.width = UI.SMALLW;
+        but1.width = UI.SMALLW();
         UI.AddControlsToTarget([but0, UI.MakeHorizSpacer(), but1], tbPanel);
 
         return tbPanel;
@@ -1562,7 +1601,7 @@ export class UI {
         return backButton;
     }
 
-    static MakeVertSpacer(spacing = UI.SPACING) {
+    static MakeVertSpacer(spacing = UI.SPACING()) {
         var spacer = new BABYLON.GUI.Rectangle();
         spacer.width = '1px';
         spacer.height = spacing;
@@ -1571,7 +1610,7 @@ export class UI {
         return spacer;
     }
 
-    static MakeHorizSpacer(spacing = UI.SPACING) {
+    static MakeHorizSpacer(spacing = UI.SPACING()) {
         var spacer = new BABYLON.GUI.Rectangle();
         spacer.width = spacing;
         spacer.height = '1px';
@@ -1590,7 +1629,7 @@ export class UI {
         } else {
             button.onPointerClickObservable.add(onPressedFn);
         }
-        UI.SetControlsWidthHeight([button], UI.STANDARDW, UI.STANDARDH);
+        UI.SetControlsWidthHeight([button], UI.STANDARDW(), UI.STANDARDH());
         button.color = 'white';
         return button;
     }
@@ -1623,9 +1662,9 @@ export class UI {
 
     static MakeScrollViewer(name = 'sv') {
         var sv = new BABYLON.GUI.ScrollViewer(name);
-        sv.width = UI.SVWIDTH;
-        sv.height = UI.SVHEIGHT;
-        sv.barSize = UI.SVBARSIZE;
+        sv.width = UI.SVWIDTH();
+        sv.height = UI.SVHEIGHT();
+        sv.barSize = UI.SVBARSIZE();
         sv.color = 'black';
         return sv;
     }

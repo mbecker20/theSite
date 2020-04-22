@@ -1,8 +1,4 @@
-//import { BF, Cam, UI } from '../babylonStuff.js';
-//import { Lagrangian } from '../lagrangian.js';
-//import { MF } from '../funcClasses.js';
-
-export class AnimTemplate {
+class AnimTemplate {
     constructor(scene, myMats, shadows, gui) {
         // sphere swings, cube up and down
         this.node = new BABYLON.TransformNode('animNode', scene);
