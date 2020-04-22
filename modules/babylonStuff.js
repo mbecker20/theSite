@@ -1566,7 +1566,7 @@ class UI {
     }
 
     static MakeVolumeSliderPanel(gui) {
-        var volSP = UI.MakeSliderPanel('volume', '', 0, 1, BABYLON.Engine.audioEngine.getGlobalVolume(), function(value) {
+        var volSP = UI.MakeSliderPanel('volume', '', 0, 1, Math.sqrt(BABYLON.Engine.audioEngine.getGlobalVolume()), function(value) {
             BABYLON.Engine.audioEngine.setGlobalVolume(value*value);
         });
         volSP.setWidth('200px');
