@@ -422,7 +422,7 @@ class Cam {
     static JOYSTICKMOVEMULT() {return .05} // delta target step = joystickmovemult * (stickpos - centerpos)
     static JOYSTICKMOVEINTERPMULT() {return .3}
 
-    static JOYSTICKROTMULT() {return .004}
+    static JOYSTICKROTMULT() {return .014}
     static JOYSTICKROTINTERPMULT() {return .3}
 
     static MakeCam(camPos, scene, canvas, engine) {
@@ -486,7 +486,10 @@ class Cam {
             cam.suspendMoveInput = false;
 
             // setup virtual joystick input
-            cam.virtualController = UI.MakeVirtualJoystickController(window.gui, engine);
+            cam.hybridController = UI.MakeVirtualHybridController(window.gui, engine);
+            cam.joystickController = UI.MakeVirtualJoystickController(window.gui, engine);
+
+            cam.virtualController = cam.hybridController;
             cam.jsTargetPos = BF.Vec2([0,0]);
             cam.jsForwardV = 0;
             cam.jsSideV = 0;
@@ -1296,6 +1299,98 @@ class UI {
         }
 
         controller.setJoystickPosition = function(side) {
+            // side is 'left' or 'right'
+            // sets only stick position
+            controller[side.concat('Joystick')].stick.left = (controller[side.concat('StickPos')][0] - UI.JOYSTICKSTICKRAD()) + 'px';
+            controller[side.concat('Joystick')].stick.top = (controller[side.concat('StickPos')][1] - UI.JOYSTICKSTICKRAD()) + 'px';
+        }
+
+        controller.onResize();
+
+        return controller;
+    }
+
+    static MakeVirtualHybridController(gui, engine) {
+        // position control is still a Joystick on the left side
+        // rotation is now direct finger drag anywhere to rotate
+        var controller = {};
+
+        controller.leftJoystick = UI.MakeVirtualJoystick(gui);
+        controller.leftFingerDown = false; // controls movement
+        controller.leftFingerID = -1;
+        controller.leftCenterPos = [0,0];
+        controller.leftStickPos = [0,0]; // absolute stick position
+        controller.leftStickLocal = [0,0]; // position of stick relative to center
+
+        controller.rightFingerDown = false; // controls look direction
+        controller.rightFingerID = -1;
+        controller.currentPos = [0,0];
+        controller.prevPos = [0,0];
+        controller.rightStickLocal = [0,0];
+
+        controller.pointerDown = function(pointerInfo) {
+            var x = pointerInfo.event.x;
+            var y = pointerInfo.event.y;
+            if (x <= controller.middleWidth/2 && !controller.leftFingerDown) {
+                controller.leftFingerID = pointerInfo.event.pointerId;
+                controller.leftFingerDown = true;
+                controller.leftCenterPos = [x, y];
+                controller.leftStickPos = [x, y];
+                controller.setJoystickBackgroundPosition('left');
+                controller.leftJoystick.show();
+            } else if (x > controller.middleWidth/2 && !controller.rightFingerDown) {
+                controller.rightFingerID = pointerInfo.event.pointerId;
+                controller.rightFingerDown = true;
+                controller.currentPos = [x, y];
+                controller.prevPos = [x, y];
+            }
+        }
+
+        controller.pointerUp = function(pointerInfo) {
+            var id = pointerInfo.event.pointerId;
+            if (id === controller.leftFingerID) {
+                controller.leftFingerDown = false;
+                controller.leftFingerID = -1;
+                controller.leftJoystick.hide();
+            } else if (id === controller.rightFingerID) {
+                controller.rightFingerDown = false;
+                controller.rightFingerID = -1;
+            }
+        }
+
+        controller.pointerMove = function(pointerInfo) {
+            var id = pointerInfo.event.pointerId;
+            if (id === controller.leftFingerID) {
+                controller.leftStickPos = [pointerInfo.event.x, pointerInfo.event.y];
+                controller.leftStickLocal = VF.R(controller.leftCenterPos, controller.leftStickPos)
+                var mag = VF.Mag(controller.leftStickLocal);
+                if (mag > UI.MAXJOYSTICKDIST()) {
+                    controller.leftStickLocal = VF.ScaleVecToLength2(controller.leftStickLocal, mag, UI.MAXJOYSTICKDIST());
+                    controller.leftStickPos = math.add(controller.leftCenterPos, controller.leftStickLocal);
+                }
+                controller.setJoystickPosition('left');
+            } else if (id === controller.rightFingerID) {
+                controller.prevPos = controller.currentPos;
+                controller.currentPos = [pointerInfo.event.x, pointerInfo.event.y];
+                controller.rightStickLocal = math.multiply(VF.R(controller.prevPos, controller.currentPos), 1);
+            }
+        }
+
+        controller.onResize = function() {
+            controller.middleWidth = engine.getRenderWidth();
+            controller.middleHeight = engine.getRenderHeight();
+        }
+
+        controller.setJoystickBackgroundPosition = function(side = 'left') {
+            // side is 'left' or 'right'
+            // sets both stick and background position
+            controller[side.concat('Joystick')].background.left = (controller[side.concat('CenterPos')][0] - UI.JOYSTICKOUTERRAD()) + 'px';
+            controller[side.concat('Joystick')].background.top = (controller[side.concat('CenterPos')][1] - UI.JOYSTICKOUTERRAD()) + 'px';
+            controller[side.concat('Joystick')].stick.left = (controller[side.concat('StickPos')][0] - UI.JOYSTICKSTICKRAD()) + 'px';
+            controller[side.concat('Joystick')].stick.top = (controller[side.concat('StickPos')][1] - UI.JOYSTICKSTICKRAD()) + 'px';
+        }
+
+        controller.setJoystickPosition = function(side = 'left') {
             // side is 'left' or 'right'
             // sets only stick position
             controller[side.concat('Joystick')].stick.left = (controller[side.concat('StickPos')][0] - UI.JOYSTICKSTICKRAD()) + 'px';
