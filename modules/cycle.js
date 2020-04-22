@@ -2,7 +2,7 @@ import { BF } from './babylonStuff.js';
 
 export class Cycle {
     // sets up the environment
-    static UNDERBLOCKSIZE = 72;
+    static UNDERBLOCKSIZE = 80;
     static CAMBOUND = Cycle.UNDERBLOCKSIZE/2;
     static NODEDIST = Cycle.CAMBOUND + .1;
     static INTERPCAMMULT = .1;

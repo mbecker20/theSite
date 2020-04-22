@@ -401,13 +401,13 @@ export class BF {
 
 export class Cam {
 
-    static HEIGHT = 8;
+    static HEIGHT = 12;
 
     static TARGETPOSITIONSTEP = .35;
-    static MOVEINTERPMULT = .1;
+    static MOVEINTERPMULT = .3;
 
     static TARGETROTATIONSTEP = .05;
-    static ROTINTERPMULT = .1;
+    static ROTINTERPMULT = .3;
 
     static MINALT = -.8 * Math.PI/2;
     static MAXALT = .8 * Math.PI/2;
@@ -421,8 +421,8 @@ export class Cam {
     static CROUCHSTEP = .2;
     static CROUCHINTERPMULT = .2;
 
-    static JOYSTICKMOVEMULT = .005; // delta target step = joystickmovemult * (stickpos - centerpos)
-    static JOYSTICKROTMULT = .0005;
+    static JOYSTICKMOVEMULT = .05; // delta target step = joystickmovemult * (stickpos - centerpos)
+    static JOYSTICKROTMULT = .004;
 
     static MakeCam(camPos, scene, canvas, engine) {
         var cam = new BABYLON.TargetCamera('camera', BF.ZeroVec3(), scene);
@@ -585,11 +585,11 @@ export class Cam {
 
         cam.joystickCheck = function() {
             if (cam.virtualController.leftFingerDown) {
-                var leftDelta = math.multiply(cam.virtualController.leftStickLocal, Cam.JOYSTICKMOVEMULT);
+                var leftDelta = math.multiply(VF.ScaleVecToLength(cam.virtualController.leftStickLocal, Math.sqrt(VF.Mag(cam.virtualController.leftStickLocal))), Cam.JOYSTICKMOVEMULT);
                 cam.targetPos.x -= leftDelta[1];
                 cam.targetPos.y += leftDelta[0];
             } if (cam.virtualController.rightFingerDown) {
-                var rightDelta = math.multiply(cam.virtualController.rightStickLocal, Cam.JOYSTICKROTMULT);
+                var rightDelta = math.multiply(VF.ScaleVecToLength(cam.virtualController.rightStickLocal, Math.sqrt(VF.Mag(cam.virtualController.rightStickLocal))), Cam.JOYSTICKROTMULT);
                 cam.targetRot.x += rightDelta[1];
                 cam.targetRot.y += rightDelta[0];
             }
@@ -1243,8 +1243,8 @@ export class UI {
         }
 
         controller.onResize = function() {
-            controller.middleWidth = engine.getRenderWidth()/2;
-            controller.middleHeight = engine.getRenderHeight()/2;
+            controller.middleWidth = engine.getRenderWidth();
+            controller.middleHeight = engine.getRenderHeight();
         }
 
         controller.setJoystickBackgroundPosition = function(side) {
@@ -1433,7 +1433,7 @@ export class UI {
 
     static MakeVolumeSliderPanel(gui) {
         var volSP = UI.MakeSliderPanel('volume', '', 0, 1, BABYLON.Engine.audioEngine.getGlobalVolume(), function(value) {
-            BABYLON.Engine.audioEngine.setGlobalVolume(value);
+            BABYLON.Engine.audioEngine.setGlobalVolume(value*value);
         });
         volSP.setWidth('200px');
         gui.mainMenu.addControl('volumeSP', volSP);
