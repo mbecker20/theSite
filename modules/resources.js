@@ -86,6 +86,8 @@ class MyMats {
 class MySounds {
     // initializes sounds
     constructor(scene) {
+        this.theSong = BF.MakeSound('song', 'resources/theSong.mp3', scene, null, {loop: true});
+
         this.animChange = BF.MakeSound('animChange', 'resources/animChange.mp3', scene);
 
         this.blockHit = BF.MakeSound('blockHit', 'resources/blockHit.mp3', scene, null, {spatialSound: true});

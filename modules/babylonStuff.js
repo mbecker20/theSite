@@ -1609,10 +1609,12 @@ class UI {
         var muteButton = UI.MakeDualButton('muteButton', 'unmute', 'mute', function() {
             BF.SetGlobalVolume(0);
             gui.mainMenu.hideControl('volumeSP');
+            window.sounds.theSong.pause();
         }, function() {
             BABYLON.Engine.audioEngine.audioContext.resume();
-            BF.SetGlobalVolume(gui.mainMenu.getControl('volumeSP').getSliderValue());
+            BF.SetGlobalVolume(MF.Square(gui.mainMenu.getControl('volumeSP').getSliderValue()));
             window.sounds.animChange.play();
+            window.sounds.theSong.play();
             gui.mainMenu.showControl('volumeSP');
         });
         UI.AlignControlsTopLeft([muteButton]);
