@@ -422,7 +422,7 @@ class Cam {
     static JOYSTICKMOVEMULT() {return .05} // delta target step = joystickmovemult * (stickpos - centerpos)
     static JOYSTICKMOVEINTERPMULT() {return .3}
 
-    static JOYSTICKROTMULT() {return .015}
+    static JOYSTICKROTMULT() {return .018}
     static JOYSTICKROTINTERPMULT() {return .3}
 
     static MakeCam(camPos, scene, canvas, engine) {
