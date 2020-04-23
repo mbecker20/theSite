@@ -3,10 +3,11 @@ class Cycle {
     static UNDERBLOCKSIZE() {return 80};
     static CAMBOUND() {return Cycle.UNDERBLOCKSIZE()/2};
     static NODEDIST() {return Cycle.CAMBOUND() + .1};
-    static INTERPCAMMULT() {return .1};
     static TARGETROTMAX() {return Math.PI/2};
     static INTERPCAMSTEPS() {return 20}; // for loop from 1 to (INTERPCAMSTEPS + 1); targetRot = i * INTERPCAMSTEP
     static INTERPCAMSTEP() {return Cycle.TARGETROTMAX()/(Cycle.INTERPCAMSTEPS())}
+    static INTERPCAMMULT() {return .1};
+    static INTERPCAMALTMULT() {return .03};
 
     static AXES() {return ['x', 'y', 'z']}
 
@@ -87,6 +88,7 @@ class Cycle {
             var deltaRot = Cycle.INTERPCAMMULT() * this.targetRot;
             window.camera.camMesh.rotate(this.camModes.activeMode[this.changeFaceEdge].rotAxis, deltaRot, BABYLON.Space.WORLD);
             this.targetRot -= deltaRot;
+            window.camera.rotation.x -= Cycle.INTERPCAMALTMULT() * window.camera.rotation.x;
         } else {
             var deltaRot = Cycle.INTERPCAMMULT() * this.targetRot;
             window.camera.camMesh.rotate(this.camModes.activeMode[this.changeFaceEdge].rotAxis, deltaRot, BABYLON.Space.WORLD);
@@ -98,6 +100,7 @@ class Cycle {
                 this.camModes.activeMode = this.camModes[this.camModes.activeMode[this.changeFaceEdge].newModeKey];
                 this.changingFace = false;
             }
+            window.camera.rotation.x -= Cycle.INTERPCAMALTMULT() * window.camera.rotation.x;
         }
     }
 

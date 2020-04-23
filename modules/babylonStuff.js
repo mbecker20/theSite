@@ -598,10 +598,12 @@ class Cam {
         cam.boundAlt = function() {
             if (cam.rotation.x > Cam.MAXALT()) {
                 cam.rotation.x = Cam.MAXALT();
-                cam.targetRot.x = 0;
+                cam.kbTargetRot.x = 0;
+                cam.jsTargetRot.x = 0;
             } else if (cam.rotation.x < Cam.MINALT()) {
                 cam.rotation.x = Cam.MINALT();
-                cam.targetRot.x = 0;
+                cam.kbTargetRot.x = 0;
+                cam.jsTargetRot.x = 0;
             }
         }
 
