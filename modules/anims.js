@@ -1082,7 +1082,7 @@ class SpinningRing {
     setMaterials(myMats) {
         BF.SetMaterial(myMats.galaxy, [this.ground]);
         BF.SetMaterial(myMats.wArrow, [this.ring]);
-        BF.SetMaterial(myMats.darkMoon, [this.mass]);
+        BF.SetMaterial(myMats.sun, [this.mass]);
         BF.SetMaterial(myMats.red, [this.zeroSteadyState, this.piSteadyState]);
         BF.SetMaterial(myMats.blue, [this.plusSteadyState, this.minusSteadyState]);
         BF.ForceCompileMaterials([this.ground, this.ring, this.mass, this.zeroSteadyState, this.piSteadyState, this.plusSteadyState, this.minusSteadyState]);
