@@ -209,6 +209,11 @@ class BF {
         return new BABYLON.Vector2(ar2[0], ar2[1]);
     }
 
+    static SetVec2(ar2, target) {
+        target.set(ar2[0], ar2[1]);
+        return target;
+    }
+
     static Vec3(ar3) {
         return new BABYLON.Vector3(ar3[0],ar3[1],ar3[2]);
     }
@@ -395,6 +400,14 @@ class BF {
     static DoMeshsIntersect(mesh0, mesh1, precise = false) {
         return mesh0.intersectsMesh(mesh1, precise);
     }
+
+    static TransformVecWorldToMeshLocal(mesh, vec3) {
+        // transforms input vec3 to local space given by mesh
+        // returns ar3
+        mesh.computeWorldMatrix();
+        var oTens = BF.GetOTens(mesh);
+        return math.multiply(oTens, BF.Vec3ToAr(vec3));
+    }
 }
 
 class Cam {
@@ -482,8 +495,10 @@ class Cam {
             cam.crouchV = 0;
             cam.targetCrouch = Cam.HEIGHT();
 
-            // to disable kb movement input
-            cam.suspendMoveInput = false;
+            // to disable things
+            cam.suspendInputChecking = false;
+            cam.suspendRotToTarget = false;
+            cam.suspendMoveToTarget = false;
 
             // setup virtual joystick input
             cam.hybridController = UI.MakeVirtualHybridController(window.gui, engine);
@@ -609,6 +624,15 @@ class Cam {
 
         cam.step = function() {
             // step funcs must not have input
+            if (!cam.suspendInputChecking) {
+                cam.inputs.checkInputs();
+                cam.joystickCheck();
+            }
+            if (!cam.suspendRotToTarget) {
+                cam.rotToTarget();
+            } if (!cam.suspendMoveToTarget) {
+                cam.moveToTarget()
+            }
             for(var i = 0; i < cam.stepFuncs.length; i++) {
                 cam.stepFuncs[i]();
             }
@@ -639,7 +663,7 @@ class Cam {
             }
         }
 
-        cam.stepFuncs = [cam.inputs.checkInputs, cam.moveToTarget, cam.rotToTarget, cam.updateCrouch, cam.onGroundCheck, cam.joystickCheck];
+        cam.stepFuncs = [cam.updateCrouch, cam.onGroundCheck];
 
         return cam;
     }
@@ -849,28 +873,26 @@ class Cam {
     
         kbMoveInput.prototype.checkInputs = function() {
             //this is where you set what the keys do
-            if (!cam.suspendMoveInput) {
-                if (this._onKeyDown) {
-                    for (var index = 0; index < this._keys.length; index++) {
-                        var keyCode = this._keys[index];
-                        if (this.keysLeft.indexOf(keyCode) !== -1) {
-                            cam.kbTargetPos.y -= Cam.TARGETPOSITIONSTEP();
-                        } else if (this.keysRight.indexOf(keyCode) !== -1) {
-                            cam.kbTargetPos.y += Cam.TARGETPOSITIONSTEP();
-                        } if (this.keysForward.indexOf(keyCode) !== -1) {
-                            cam.kbTargetPos.x += Cam.TARGETPOSITIONSTEP();
-                        } else if (this.keysBack.indexOf(keyCode) !== -1) {
-                            cam.kbTargetPos.x -= Cam.TARGETPOSITIONSTEP();
-                        } if (this.keysJump.indexOf(keyCode) !== -1) {
-                            if(cam.onGround) {
-                                cam.jumpV = Cam.JUMPV();
-                                cam.onGround = false;
-                                cam.bounceOnGround = false;
-                                cam.bounceDist = 0;
-                            }
-                        } else if (this.keysCrouch.indexOf(keyCode) !== -1) {
-                            cam.targetCrouch = math.max(cam.targetCrouch - 2*Cam.CROUCHSTEP(), Cam.CROUCHHEIGHT()-Cam.CROUCHSTEP());
+            if (this._onKeyDown) {
+                for (var index = 0; index < this._keys.length; index++) {
+                    var keyCode = this._keys[index];
+                    if (this.keysLeft.indexOf(keyCode) !== -1) {
+                        cam.kbTargetPos.y -= Cam.TARGETPOSITIONSTEP();
+                    } else if (this.keysRight.indexOf(keyCode) !== -1) {
+                        cam.kbTargetPos.y += Cam.TARGETPOSITIONSTEP();
+                    } if (this.keysForward.indexOf(keyCode) !== -1) {
+                        cam.kbTargetPos.x += Cam.TARGETPOSITIONSTEP();
+                    } else if (this.keysBack.indexOf(keyCode) !== -1) {
+                        cam.kbTargetPos.x -= Cam.TARGETPOSITIONSTEP();
+                    } if (this.keysJump.indexOf(keyCode) !== -1) {
+                        if(cam.onGround) {
+                            cam.jumpV = Cam.JUMPV();
+                            cam.onGround = false;
+                            cam.bounceOnGround = false;
+                            cam.bounceDist = 0;
                         }
+                    } else if (this.keysCrouch.indexOf(keyCode) !== -1) {
+                        cam.targetCrouch = math.max(cam.targetCrouch - 2*Cam.CROUCHSTEP(), Cam.CROUCHHEIGHT()-Cam.CROUCHSTEP());
                     }
                 }
             }
