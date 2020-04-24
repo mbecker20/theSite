@@ -48,8 +48,8 @@ window.addEventListener('DOMContentLoaded', function() {
         multiPend.params.theta0 = 2;
         
         // world axes for reference (red = x, green = y, blue = z)
-        var oAxes = BF.MakeAxes('oAxes', scene, 4);
-        oAxes.position.y = Cycle.UNDERBLOCKSIZE()/2 + .5;
+        //var oAxes = BF.MakeAxes('oAxes', scene, 4);
+        //oAxes.position.y = Cycle.UNDERBLOCKSIZE()/2 + .5;
 
         var anims = {
             'pendulum tug of war': ptw,

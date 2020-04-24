@@ -28,6 +28,7 @@ class MyMats {
 
         this.wArrow = new BABYLON.StandardMaterial("wArrow", scene);
         this.wArrow.diffuseTexture = new BABYLON.Texture("https://i.imgur.com/HhdoVoA.png", scene);
+        this.wArrow.emissiveColor = BF.ColorRGB(40,40,40);
 
         this.wArrow2 = new BABYLON.StandardMaterial("wArrow2", scene);
         this.wArrow2.diffuseTexture = new BABYLON.Texture("https://i.imgur.com/kczDhDm.png", scene);
@@ -57,6 +58,9 @@ class MyMats {
         this.darkMoon = new BABYLON.StandardMaterial('darkMoon', scene);
         this.darkMoon.diffuseTexture = this.moon.diffuseTexture;
         this.darkMoon.emissiveColor = BF.ColorRGB(100,100,100);
+
+        this.darkMoonUB = new BABYLON.StandardMaterial('darkMoonUB', scene);
+        this.darkMoonUB.diffuseTexture = this.moon.diffuseTexture;
 
         this.galaxy = new BABYLON.StandardMaterial('galaxy', scene);
         this.galaxy.diffuseTexture = new BABYLON.Texture('https://i.imgur.com/eZiIipX.png', scene);
