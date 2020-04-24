@@ -1157,6 +1157,9 @@ class UI {
         var animState = {anims: anims};
         animState.switchActiveAnim = function(animKey) {
             window.sounds.animChange.play();
+            if (animState.activeAnim.guiMenu.panel.isVisible) {
+                gui.setActiveMenu(animState.anims[animKey].guiMenu);
+            }
             animState.activeAnim.deactivate();
             animState.activeAnim = animState.anims[animKey];
             animState.activeAnim.activate();
@@ -1204,10 +1207,13 @@ class UI {
         htMenu.addControls(['spacer', 'htText10', 'htText11'], [UI.MakeVertSpacer(), htText10, htText11], false);
         controls.push(htText10, htText11);
 
-        var htText20 = UI.MakeTextBlock('control field of view with', UI.HOWTOTEXTSIZE());
-        var htText21 = UI.MakeTextBlock('9 and 0 (zero) keys', UI.HOWTOTEXTSIZE());
-        htMenu.addControls(['spacer', 'htText20', 'htText21'], [UI.MakeVertSpacer(), htText20, htText21], false);
-        controls.push(htText20, htText21);
+        var htText20 = UI.MakeTextBlock('if you are using a touchscreen,', UI.HOWTOTEXTSIZE());
+        var htText21 = UI.MakeTextBlock('touch the left side of the screen', UI.HOWTOTEXTSIZE());
+        var htText22 = UI.MakeTextBlock('to use the virtual joystick.', UI.HOWTOTEXTSIZE());
+        var htText23 = UI.MakeTextBlock('touch and drag the right side', UI.HOWTOTEXTSIZE());
+        var htText24 = UI.MakeTextBlock('of the screen to look around', UI.HOWTOTEXTSIZE());
+        htMenu.addControls(['spacer', 'htText20', 'htText21', 'htText22', 'htText23', 'htText24'], [UI.MakeVertSpacer(), htText20, htText21, htText22, htText23, htText24], false);
+        controls.push(htText20, htText21, htText22, htText23, htText24);
 
         var htText30 = UI.MakeTextBlock('experiment with sim settings', UI.HOWTOTEXTSIZE());
         var htText31 = UI.MakeTextBlock('for each simulation', UI.HOWTOTEXTSIZE());
