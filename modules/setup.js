@@ -65,7 +65,7 @@ window.addEventListener('DOMContentLoaded', function() {
 
         UI.MakeHowToMenu(window.gui);
         UI.MakeVolumeSliderPanel(window.gui);
-        BF.SetGlobalVolume(.5);
+        BF.SetGlobalVolume(0);
 
         scene.registerAfterRender(function () {
             window.camera.step();
