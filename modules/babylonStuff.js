@@ -626,7 +626,7 @@ class Cam {
             // step funcs must not have input
             if (!cam.suspendInputChecking) {
                 cam.inputs.checkInputs();
-                cam.joystickCheck();
+                cam.virtualControllerCheck();
             }
             if (!cam.suspendRotToTarget) {
                 cam.rotToTarget();
@@ -651,7 +651,7 @@ class Cam {
             cam.setLookDirection(VF.R(BF.Vec3ToAr(cam.camMesh.position), ar3));
         }
 
-        cam.joystickCheck = function() {
+        cam.joystickControllerCheck = function() {
             if (cam.virtualController.leftFingerDown) {
                 var leftDelta = math.multiply(VF.ScaleVecToLength(cam.virtualController.leftStickLocal, Math.sqrt(VF.Mag(cam.virtualController.leftStickLocal))), Cam.JOYSTICKMOVEMULT());
                 cam.jsTargetPos.x -= leftDelta[1];
@@ -663,6 +663,24 @@ class Cam {
             }
         }
 
+        cam.hybridControllerCheck = function() {
+            if (cam.virtualController.leftFingerDown) {
+                var leftDelta = math.multiply(VF.ScaleVecToLength(cam.virtualController.leftStickLocal, Math.sqrt(VF.Mag(cam.virtualController.leftStickLocal))), Cam.JOYSTICKMOVEMULT());
+                cam.jsTargetPos.x -= leftDelta[1];
+                cam.jsTargetPos.y += leftDelta[0];
+            } if (cam.virtualController.rightFingerDown) {
+                if (!cam.virtualController.justMoved) {
+                    cam.virtualController.prevPos = cam.virtualController.currentPos;
+                    cam.virtualController.rightStickLocal = [0,0];
+                }
+                cam.virtualController.justMoved = false;
+                var rightDelta = math.multiply(VF.ScaleVecToLength(cam.virtualController.rightStickLocal, Math.sqrt(VF.Mag(cam.virtualController.rightStickLocal))), Cam.JOYSTICKROTMULT());
+                cam.jsTargetRot.x += rightDelta[1];
+                cam.jsTargetRot.y += rightDelta[0];
+            }
+        }
+
+        cam.virtualControllerCheck = cam.hybridControllerCheck;
         cam.stepFuncs = [cam.updateCrouch, cam.onGroundCheck];
 
         return cam;
@@ -1251,6 +1269,7 @@ class UI {
         controller.rightCenterPos = [0,0];
         controller.rightStickPos = [0,0];
         controller.rightStickLocal = [0,0];
+        controller.justMoved = true; // just to able to hot swap with hybrid controller
 
         controller.pointerDown = function(pointerInfo) {
             var x = pointerInfo.event.x;
@@ -1351,6 +1370,7 @@ class UI {
         controller.currentPos = [0,0];
         controller.prevPos = [0,0];
         controller.rightStickLocal = [0,0];
+        controller.justMoved = false;
 
         controller.pointerDown = function(pointerInfo) {
             var x = pointerInfo.event.x;
@@ -1394,6 +1414,7 @@ class UI {
                 }
                 controller.setJoystickPosition('left');
             } else if (id === controller.rightFingerID) {
+                controller.justMoved = true;
                 controller.prevPos = controller.currentPos;
                 controller.currentPos = [pointerInfo.event.x, pointerInfo.event.y];
                 controller.rightStickLocal = math.multiply(VF.R(controller.prevPos, controller.currentPos), 1);
