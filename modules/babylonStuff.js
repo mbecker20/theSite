@@ -517,6 +517,22 @@ class Cam {
         cam.setupCam();
 
         // set methods
+        cam.step = function() {
+            // step funcs must not have input
+            if (!cam.suspendInputChecking) {
+                cam.inputs.checkInputs();
+                cam.virtualControllerCheck();
+            }
+            if (!cam.suspendRotToTarget) {
+                cam.rotToTarget();
+            } if (!cam.suspendMoveToTarget) {
+                cam.moveToTarget()
+            }
+            for(var i = 0; i < cam.stepFuncs.length; i++) {
+                cam.stepFuncs[i]();
+            }
+        }
+
         cam.moveToTarget = function() {
             cam.kbMoveToTarget();
             cam.jsMoveToTarget();
@@ -619,22 +635,6 @@ class Cam {
                 cam.rotation.x = Cam.MINALT();
                 cam.kbTargetRot.x = 0;
                 cam.jsTargetRot.x = 0;
-            }
-        }
-
-        cam.step = function() {
-            // step funcs must not have input
-            if (!cam.suspendInputChecking) {
-                cam.inputs.checkInputs();
-                cam.virtualControllerCheck();
-            }
-            if (!cam.suspendRotToTarget) {
-                cam.rotToTarget();
-            } if (!cam.suspendMoveToTarget) {
-                cam.moveToTarget()
-            }
-            for(var i = 0; i < cam.stepFuncs.length; i++) {
-                cam.stepFuncs[i]();
             }
         }
 
