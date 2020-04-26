@@ -7,9 +7,6 @@ window.addEventListener('DOMContentLoaded', function() {
 
     // createScene function that creates and return the scene
     var createScene = function() {
-        // check if user device is iPhone
-        window.ONIPHONE = (window.navigator.platform === 'iPhone');
-        
         // create scene
         var scene = new BABYLON.Scene(engine);
 
