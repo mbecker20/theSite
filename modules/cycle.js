@@ -70,7 +70,9 @@ class Cycle {
             if (pos0 >= Cycle.CAMBOUND()) {
                 this.changingFace = true;
                 this.changeFaceEdge = 'pos'.concat(ax0);
-                window.animState.switchActiveAnim(this.camModes[this.changeFaceEdge].animKey);
+                if (window.animState) { // in case anim doesnt exist (face empty)
+                    window.animState.switchActiveAnim(this.camModes[this.changeFaceEdge].animKey);
+                }
                 this.setTotDeltaAzim();
                 this.setMoveDir();
                 window.camera.suspendRotToTarget = true;
@@ -78,7 +80,9 @@ class Cycle {
             } else if (pos0 <= -Cycle.CAMBOUND()) {
                 this.changingFace = true;
                 this.changeFaceEdge = 'neg'.concat(ax0);
-                window.animState.switchActiveAnim(this.camModes[this.changeFaceEdge].animKey);
+                if (window.animState) {
+                    window.animState.switchActiveAnim(this.camModes[this.changeFaceEdge].animKey);
+                }
                 this.setTotDeltaAzim();
                 this.setMoveDir();
                 window.camera.suspendRotToTarget = true;
@@ -86,7 +90,9 @@ class Cycle {
             } else if (pos1 >= Cycle.CAMBOUND()) {
                 this.changingFace = true;
                 this.changeFaceEdge = 'pos'.concat(ax1);
-                window.animState.switchActiveAnim(this.camModes[this.changeFaceEdge].animKey);
+                if (window.animState) {
+                    window.animState.switchActiveAnim(this.camModes[this.changeFaceEdge].animKey);
+                }
                 this.setTotDeltaAzim();
                 this.setMoveDir();
                 window.camera.suspendRotToTarget = true;
@@ -94,7 +100,9 @@ class Cycle {
             } else if (pos1 <= -Cycle.CAMBOUND()) {
                 this.changingFace = true;
                 this.changeFaceEdge = 'neg'.concat(ax1);
-                window.animState.switchActiveAnim(this.camModes[this.changeFaceEdge].animKey);
+                if (window.animState) {
+                    window.animState.switchActiveAnim(this.camModes[this.changeFaceEdge].animKey);
+                }
                 this.setTotDeltaAzim();
                 this.setMoveDir();
                 window.camera.suspendRotToTarget = true;

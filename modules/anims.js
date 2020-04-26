@@ -163,13 +163,13 @@ class DancingTHandle {
         this.dt = .008;
         this.g = 0;
 
-        makePhysBody(scene, this.tHandle, BF.ZeroVec3(), [-80,-80,-1200], .1, this.dt);
+        makePhysBody(scene, this.node, this.tHandle, BF.ZeroVec3(), [-80,-80,-1200], .1, this.dt);
         this.tHandle.p = BF.Vec3([0, 7, 0]);
         this.tHandle.position = this.tHandle.p;
         this.tHandle.wArrow.pointer.material = myMats.wArrow;
         this.tHandle.updateMesh();
 
-        BF.SetChildren(this.node, [this.ground, this.tHandle, this.tHandle.wArrow]);
+        BF.SetChildren(this.node, [this.ground, this.tHandle]);
         
         this.stepsPerFrame = 1;
 

@@ -1,14 +1,16 @@
-function makePhysBody(scene, mesh, v, angMom, density, dt) {
+function makePhysBody(scene, node, mesh, v, angMom, density, dt) {
     // returns the mesh with added functions and properties
     // mesh will have COM at origin after creation
     PF.MoveToCOM(mesh);
-    mesh.angMom = angMom; //ar 3
+    mesh.node = node;
+    mesh.nodeAngMom = angMom // angMom relative to node. must mesh.updateAngMom() after node transform
+    mesh.angMom = BF.TransformArMeshLocalToWorld(mesh.node, mesh.nodeAngMom);
     mesh.p = BF.ZeroVec3();
     mesh.v = v; //babylon vec3
     mesh.momTens = PF.GetMomentTensor(mesh,density);
     mesh.oTens = BF.GetOTens(mesh);
-    mesh.w = PF.getCorrW(mesh.oTens,mesh.momTens,mesh.angMom,dt);
-    mesh.wVec3 = BF.Vec3([mesh.w])
+    mesh.wVec3 = BF.ZeroVec3();
+    mesh.w = PF.getCorrW(mesh.oTens, mesh.momTens, mesh.angMom, dt);
 
     mesh.arrowScale = 1;
     mesh.wArrow = BF.MakeArrow(mesh.name.concat(' wArrow'), scene, math.multiply(mesh.w, mesh.arrowScale), .3, .7);
@@ -32,7 +34,7 @@ function makePhysBody(scene, mesh, v, angMom, density, dt) {
     mesh.updateMeshArrow = function() {
         mesh.position = mesh.p;
         mesh.wArrow.setDirLength(math.multiply(mesh.w, mesh.arrowScale));
-        mesh.wArrow.position = mesh.position;
+        mesh.wArrow.position = mesh.absolutePosition;
     }
     
     mesh.updateMeshNoArrow = function() {
@@ -64,6 +66,10 @@ function makePhysBody(scene, mesh, v, angMom, density, dt) {
 
     mesh.setShowAxes = function(showAxes) {
         mesh.axes.setEnabled(showAxes);
+    }
+
+    mesh.updateAngMom = function() {
+        mesh.angMom = BF.TransformArMeshLocalToWorld(mesh.node, mesh.nodeAngMom); //ar 3 relative to node space
     }
 
     mesh.setState(mesh.showWArrow, mesh.showAxes);

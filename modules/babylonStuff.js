@@ -408,6 +408,14 @@ class BF {
         var oTens = BF.GetOTens(mesh);
         return math.multiply(oTens, BF.Vec3ToAr(vec3));
     }
+
+    static TransformArMeshLocalToWorld(mesh, ar3) {
+        // transforms input ar3 from local space given by mesh to world space
+        // returns ar3
+        mesh.computeWorldMatrix();
+        var oTens = BF.GetOTens(mesh);
+        return math.multiply(ar3, oTens);
+    }
 }
 
 class Cam {
@@ -435,7 +443,10 @@ class Cam {
     static JOYSTICKMOVEMULT() {return .05} // delta target step = joystickmovemult * (stickpos - centerpos)
     static JOYSTICKMOVEINTERPMULT() {return .3}
 
-    static JOYSTICKROTMULT() {return .018}
+    static HYBRIDROTMULT() {return .018}
+    static HYBRIDROTINTERPMULT() {return .3}
+
+    static JOYSTICKROTMULT() {return .005}
     static JOYSTICKROTINTERPMULT() {return .3}
 
     static MakeCam(camPos, scene, canvas, engine) {
@@ -461,27 +472,13 @@ class Cam {
 
             cam.attachControl(canvas);
 
-            // this contains position cam moving to, expressed locally
-            // x forward, y side. no movement has targetPos at [0,0]
-            cam.kbTargetPos = BF.Vec2([0,0]);
-
             // initialize vector to be set and added to position
             cam.deltaPos = BF.ZeroVec3(); 
 
-            cam.kbForwardV = 0;
-            cam.kbSideV = 0;
-
             // setup rotation
-
-            // rotation target is moved to. cam is rotated about cam local x axis by alt
-            // camMesh is rotated about world y axis by azim
-            cam.upVec = BF.Vec3([0,1,0]);
-            cam.kbTargetRot = BF.Vec2([0,0]); // first comp is alt, second is azim
+            cam.upVec = BF.Vec3([0,1,0]); // vector camMesh is rotated locally about for azim rotation
             cam.deltaAlt = 0;
             cam.deltaAzim = 0;
-
-            cam.kbDeltaAlt = 0;
-            cam.kbDeltaAzim = 0;
 
             //setup jumping
             cam.ground = null; // set this once the ground mesh is created;
@@ -499,22 +496,11 @@ class Cam {
             cam.suspendInputChecking = false;
             cam.suspendRotToTarget = false;
             cam.suspendMoveToTarget = false;
-
-            // setup virtual joystick input
-            cam.hybridController = UI.MakeVirtualHybridController(window.gui, engine);
-            cam.joystickController = UI.MakeVirtualJoystickController(window.gui, engine);
-
-            cam.virtualController = cam.hybridController;
-            cam.jsTargetPos = BF.Vec2([0,0]);
-            cam.jsForwardV = 0;
-            cam.jsSideV = 0;
-
-            cam.jsTargetRot = BF.Vec2([0,0]);
-            cam.jsDeltaAlt = 0;
-            cam.jsDeltaAzim = 0;
         }
         
         cam.setupCam();
+        Cam.SetupKBControl(cam);
+        Cam.SetupVirtualControl(cam, engine);
 
         // set methods
         cam.step = function() {
@@ -542,18 +528,32 @@ class Cam {
             cam.updateBounce();
         }
 
-        cam.kbMoveToTarget = function() {
-            cam.kbForwardV = Cam.KBMOVEINTERPMULT() * cam.kbTargetPos.x;
-            cam.kbSideV = Cam.KBMOVEINTERPMULT() * cam.kbTargetPos.y;
-            cam.kbTargetPos.x -= cam.kbForwardV;
-            cam.kbTargetPos.y -= cam.kbSideV;
+        cam.rotToTarget = function() {
+            cam.kbRotToTarget();
+            cam.jsRotToTarget();
+
+            cam.deltaAlt = cam.kbDeltaAlt + cam.jsDeltaAlt;
+            cam.rotation.x += cam.deltaAlt;
+            cam.boundAlt();
+            
+            cam.deltaAzim = cam.kbDeltaAzim + cam.jsDeltaAzim;
+            cam.camMesh.rotate(cam.upVec, cam.deltaAzim, BABYLON.Space.LOCAL);
         }
 
-        cam.jsMoveToTarget = function() {
-            cam.jsForwardV = Cam.JOYSTICKMOVEINTERPMULT() * cam.jsTargetPos.x;
-            cam.jsSideV = Cam.JOYSTICKMOVEINTERPMULT() * cam.jsTargetPos.y;
-            cam.jsTargetPos.x -= cam.jsForwardV;
-            cam.jsTargetPos.y -= cam.jsSideV;
+        cam.boundAlt = function() {
+            if (cam.rotation.x > Cam.MAXALT()) {
+                cam.rotation.x = Cam.MAXALT();
+                cam.kbTargetRot.x = 0;
+                cam.jsTargetRot.x = 0;
+            } else if (cam.rotation.x < Cam.MINALT()) {
+                cam.rotation.x = Cam.MINALT();
+                cam.kbTargetRot.x = 0;
+                cam.jsTargetRot.x = 0;
+            }
+        }
+
+        cam.onGroundCheck = function() {
+            cam.onGround = BF.DoMeshsIntersect(cam.camMesh, cam.ground);
         }
 
         cam.updateJump = function() {
@@ -594,50 +594,6 @@ class Cam {
             
         }
 
-        cam.onGroundCheck = function() {
-            cam.onGround = BF.DoMeshsIntersect(cam.camMesh, cam.ground);
-        }
-
-        cam.rotToTarget = function() {
-            cam.kbRotToTarget();
-            cam.jsRotToTarget();
-
-            cam.deltaAlt = cam.kbDeltaAlt + cam.jsDeltaAlt;
-            cam.rotation.x += cam.deltaAlt;
-            cam.boundAlt();
-            
-            cam.deltaAzim = cam.kbDeltaAzim + cam.jsDeltaAzim;
-            cam.camMesh.rotate(cam.upVec, cam.deltaAzim, BABYLON.Space.LOCAL);
-        }
-
-        cam.kbRotToTarget = function() {
-            cam.kbDeltaAlt = Cam.KBROTINTERPMULT() * cam.kbTargetRot.x;
-            cam.kbTargetRot.x -= cam.kbDeltaAlt;
-            
-            cam.kbDeltaAzim = Cam.KBROTINTERPMULT() * cam.kbTargetRot.y;
-            cam.kbTargetRot.y -= cam.kbDeltaAzim;
-        }
-
-        cam.jsRotToTarget = function() {
-            cam.jsDeltaAlt = Cam.JOYSTICKROTINTERPMULT() * cam.jsTargetRot.x;
-            cam.jsTargetRot.x -= cam.jsDeltaAlt;
-            
-            cam.jsDeltaAzim = Cam.JOYSTICKROTINTERPMULT() * cam.jsTargetRot.y;
-            cam.jsTargetRot.y -= cam.jsDeltaAzim;
-        }
-
-        cam.boundAlt = function() {
-            if (cam.rotation.x > Cam.MAXALT()) {
-                cam.rotation.x = Cam.MAXALT();
-                cam.kbTargetRot.x = 0;
-                cam.jsTargetRot.x = 0;
-            } else if (cam.rotation.x < Cam.MINALT()) {
-                cam.rotation.x = Cam.MINALT();
-                cam.kbTargetRot.x = 0;
-                cam.jsTargetRot.x = 0;
-            }
-        }
-
         cam.setLookDirection = function(ar3) {
             // this only works if done during initialization. after first step, rotationQuaternion is being used instead of rotation
             const unit = VF.Unit(ar3);
@@ -651,36 +607,6 @@ class Cam {
             cam.setLookDirection(VF.R(BF.Vec3ToAr(cam.camMesh.position), ar3));
         }
 
-        cam.joystickControllerCheck = function() {
-            if (cam.virtualController.leftFingerDown) {
-                var leftDelta = math.multiply(VF.ScaleVecToLength(cam.virtualController.leftStickLocal, Math.sqrt(VF.Mag(cam.virtualController.leftStickLocal))), Cam.JOYSTICKMOVEMULT());
-                cam.jsTargetPos.x -= leftDelta[1];
-                cam.jsTargetPos.y += leftDelta[0];
-            } if (cam.virtualController.rightFingerDown) {
-                var rightDelta = math.multiply(VF.ScaleVecToLength(cam.virtualController.rightStickLocal, Math.sqrt(VF.Mag(cam.virtualController.rightStickLocal))), Cam.JOYSTICKROTMULT());
-                cam.jsTargetRot.x += rightDelta[1];
-                cam.jsTargetRot.y += rightDelta[0];
-            }
-        }
-
-        cam.hybridControllerCheck = function() {
-            if (cam.virtualController.leftFingerDown) {
-                var leftDelta = math.multiply(VF.ScaleVecToLength(cam.virtualController.leftStickLocal, Math.sqrt(VF.Mag(cam.virtualController.leftStickLocal))), Cam.JOYSTICKMOVEMULT());
-                cam.jsTargetPos.x -= leftDelta[1];
-                cam.jsTargetPos.y += leftDelta[0];
-            } if (cam.virtualController.rightFingerDown) {
-                if (!cam.virtualController.justMoved) {
-                    cam.virtualController.prevPos = cam.virtualController.currentPos;
-                    cam.virtualController.rightStickLocal = [0,0];
-                }
-                cam.virtualController.justMoved = false;
-                var rightDelta = math.multiply(VF.ScaleVecToLength(cam.virtualController.rightStickLocal, Math.sqrt(VF.Mag(cam.virtualController.rightStickLocal))), Cam.JOYSTICKROTMULT());
-                cam.jsTargetRot.x += rightDelta[1];
-                cam.jsTargetRot.y += rightDelta[0];
-            }
-        }
-
-        cam.virtualControllerCheck = cam.hybridControllerCheck;
         cam.stepFuncs = [cam.updateCrouch, cam.onGroundCheck];
 
         return cam;
@@ -918,6 +844,113 @@ class Cam {
         };
     
         return new kbMoveInput();
+    }
+
+    static SetupKBControl(cam) {
+        // this contains position cam moving to, expressed locally
+        // x forward, y side. no movement has targetPos at [0,0]
+        cam.kbTargetPos = BF.Vec2([0,0]);
+
+        // rotation target is moved to. cam is rotated about cam local x axis by alt
+        // camMesh is rotated about world y axis by azim
+        cam.kbTargetRot = BF.Vec2([0,0]); // first comp is alt, second is azim
+
+        cam.kbForwardV = 0;
+        cam.kbSideV = 0;
+
+        cam.kbDeltaAlt = 0;
+        cam.kbDeltaAzim = 0;
+
+        cam.kbMoveToTarget = function() {
+            cam.kbForwardV = Cam.KBMOVEINTERPMULT() * cam.kbTargetPos.x;
+            cam.kbSideV = Cam.KBMOVEINTERPMULT() * cam.kbTargetPos.y;
+            cam.kbTargetPos.x -= cam.kbForwardV;
+            cam.kbTargetPos.y -= cam.kbSideV;
+        }
+
+        cam.kbRotToTarget = function() {
+            cam.kbDeltaAlt = Cam.KBROTINTERPMULT() * cam.kbTargetRot.x;
+            cam.kbTargetRot.x -= cam.kbDeltaAlt;
+            
+            cam.kbDeltaAzim = Cam.KBROTINTERPMULT() * cam.kbTargetRot.y;
+            cam.kbTargetRot.y -= cam.kbDeltaAzim;
+        }
+    }
+
+    static SetupVirtualControl(cam, engine) {
+        // setup virtual joystick input
+        cam.vcModes = {};
+        cam.vcModes.hybridController = UI.MakeVirtualHybridController(window.gui, engine);
+        cam.vcModes.dualJSController = UI.MakeVirtualJoystickController(window.gui, engine);
+
+        cam.jsTargetPos = BF.Vec2([0,0]);
+        cam.jsForwardV = 0;
+        cam.jsSideV = 0;
+
+        cam.jsTargetRot = BF.Vec2([0,0]);
+        cam.jsDeltaAlt = 0;
+        cam.jsDeltaAzim = 0;
+
+
+        cam.vcModes.dualJSCheck = function() {
+            if (cam.virtualController.leftFingerDown) {
+                var leftDelta = math.multiply(VF.ScaleVecToLength(cam.virtualController.leftStickLocal, Math.sqrt(VF.Mag(cam.virtualController.leftStickLocal))), Cam.JOYSTICKMOVEMULT());
+                cam.jsTargetPos.x -= leftDelta[1];
+                cam.jsTargetPos.y += leftDelta[0];
+            } if (cam.virtualController.rightFingerDown) {
+                var rightDelta = math.multiply(VF.ScaleVecToLength(cam.virtualController.rightStickLocal, Math.sqrt(VF.Mag(cam.virtualController.rightStickLocal))), Cam.JOYSTICKROTMULT());
+                cam.jsTargetRot.x += rightDelta[1];
+                cam.jsTargetRot.y += rightDelta[0];
+            }
+        }
+
+        cam.vcModes.hybridCheck = function() {
+            if (cam.virtualController.leftFingerDown) {
+                var leftDelta = math.multiply(VF.ScaleVecToLength(cam.virtualController.leftStickLocal, Math.sqrt(VF.Mag(cam.virtualController.leftStickLocal))), Cam.JOYSTICKMOVEMULT());
+                cam.jsTargetPos.x -= leftDelta[1];
+                cam.jsTargetPos.y += leftDelta[0];
+            } if (cam.virtualController.rightFingerDown) {
+                if (!cam.virtualController.justMoved) {
+                    cam.virtualController.prevPos = cam.virtualController.currentPos;
+                    cam.virtualController.rightStickLocal = [0,0];
+                }
+                cam.virtualController.justMoved = false;
+                var rightDelta = math.multiply(VF.ScaleVecToLength(cam.virtualController.rightStickLocal, Math.sqrt(VF.Mag(cam.virtualController.rightStickLocal))), Cam.HYBRIDROTMULT());
+                cam.jsTargetRot.x += rightDelta[1];
+                cam.jsTargetRot.y += rightDelta[0];
+            }
+        }
+
+        cam.jsMoveToTarget = function() {
+            cam.jsForwardV = Cam.JOYSTICKMOVEINTERPMULT() * cam.jsTargetPos.x;
+            cam.jsSideV = Cam.JOYSTICKMOVEINTERPMULT() * cam.jsTargetPos.y;
+            cam.jsTargetPos.x -= cam.jsForwardV;
+            cam.jsTargetPos.y -= cam.jsSideV;
+        }
+
+        cam.vcModes.dualJSRotToTarget = function() {
+            cam.jsDeltaAlt = Cam.JOYSTICKROTINTERPMULT() * cam.jsTargetRot.x;
+            cam.jsTargetRot.x -= cam.jsDeltaAlt;
+            
+            cam.jsDeltaAzim = Cam.JOYSTICKROTINTERPMULT() * cam.jsTargetRot.y;
+            cam.jsTargetRot.y -= cam.jsDeltaAzim;
+        }
+
+        cam.vcModes.hybridRotToTarget = function() {
+            cam.jsDeltaAlt = Cam.HYBRIDROTINTERPMULT() * cam.jsTargetRot.x;
+            cam.jsTargetRot.x -= cam.jsDeltaAlt;
+            
+            cam.jsDeltaAzim = Cam.HYBRIDROTINTERPMULT() * cam.jsTargetRot.y;
+            cam.jsTargetRot.y -= cam.jsDeltaAzim;
+        }
+
+        cam.switchVirtualControl = function(name) {
+            cam.virtualController = cam.vcModes[name.concat('Controller')];
+            cam.virtualControllerCheck = cam.vcModes[name.concat('Check')];
+            cam.jsRotToTarget = cam.vcModes[name.concat('RotToTarget')];
+        }
+
+        cam.switchVirtualControl('hybrid');
     }
 }
 
@@ -1223,6 +1256,35 @@ class UI {
         UI.SetControlsWidthHeight(controls, UI.HOWTOTEXTW(), UI.HOWTOTEXTH());
 
         gui.mainMenu.addSubMenu(htMenu);
+    }
+
+    static MakeChooseVirtualControlMenu(gui) {
+        var cvcMenu = UI.MakeSubMenu('cvcMenu', gui.mainMenu, gui, 'choose virtual control');
+        var controls = [];
+        var names = [];
+
+        cvcMenu.switchActive = function(name, but) {
+            window.camera.switchVirtualControl(name);
+            cvcMenu.activeBut.color = 'white';
+            cvcMenu.activeBut = but;
+            cvcMenu.activeBut.color = 'green';
+        }
+
+        var hybridButton = UI.MakeButton('actHybridControlBut', 'hybrid joystick control', function() {
+            cvcMenu.switchActive('hybrid', hybridButton);
+        });
+        controls.push(hybridButton);
+        names.push('hybridButton');
+        var dualJSButton = UI.MakeButton('actDualJSControlBut', 'dual joystick control', function() {
+            cvcMenu.switchActive('dualJS', dualJSButton);
+        });
+        controls.push(dualJSButton);
+        names.push('dualJSButton');
+        
+        cvcMenu.activeBut = hybridButton;
+        cvcMenu.activeBut.color = 'green';
+        cvcMenu.addControls(names, controls);
+        gui.mainMenu.addSubMenu(cvcMenu);
     }
 
     static MakeVirtualJoystick(gui) {
