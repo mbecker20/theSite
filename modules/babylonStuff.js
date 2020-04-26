@@ -950,7 +950,11 @@ class Cam {
             cam.jsRotToTarget = cam.vcModes[name.concat('RotToTarget')];
         }
 
-        cam.switchVirtualControl('hybrid');
+        if (window.ONIPHONE) { // if user is using an iphone dualJS works better
+            cam.switchVirtualControl('dualJS');
+        } else {
+            cam.switchVirtualControl('hybrid');
+        }
     }
 }
 
