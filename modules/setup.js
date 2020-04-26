@@ -5,11 +5,11 @@ window.addEventListener('DOMContentLoaded', function() {
     // load the 3D engine
     var engine = new BABYLON.Engine(canvas, true);
 
+    // check if user device is iPhone
+    window.ONIPHONE = (window.navigator.platform === 'iPhone');
+
     // createScene function that creates and return the scene
     var createScene = function() {
-        // check if user device is iPhone
-        window.ONIPHONE = (window.navigator.platform === 'iPhone');
-        
         // create scene
         var scene = new BABYLON.Scene(engine);
 
