@@ -950,7 +950,11 @@ class Cam {
             cam.jsRotToTarget = cam.vcModes[name.concat('RotToTarget')];
         }
 
-        cam.switchVirtualControl('hybrid');
+        if (window.ONIPHONE) { // if user is using an iphone dualJS works better
+            cam.switchVirtualControl('dualJS');
+        } else {
+            cam.switchVirtualControl('hybrid');
+        }
     }
 }
 
@@ -1710,7 +1714,11 @@ class UI {
             resAudFunc();
             gui.activeMenu.show();
         }, window.sounds.uiClick);
-        UI.AlignControlsTopLeft([shButton]);
+        if (window.ONIPHONE) {
+            UI.AlignControlsBottomLeft([shButton]);
+        } else {
+            UI.AlignControlsTopLeft([shButton]);
+        }
         shButton.width = '60px';
         shButton.height = '30px';
         gui.texture.addControl(shButton);
@@ -1730,7 +1738,11 @@ class UI {
             window.sounds.theSong.play();
             gui.mainMenu.showControl('volumeSP');
         });
-        UI.AlignControlsTopLeft([muteButton]);
+        if (window.ONIPHONE) {
+            UI.AlignControlsBottomLeft([muteButton]);
+        } else {
+            UI.AlignControlsTopLeft([muteButton]);
+        }
         muteButton.width = '66px';
         muteButton.height = '30px';
         muteButton.left = '68px';
@@ -1903,6 +1915,12 @@ class UI {
         }
     }
 
+    static AlignControlsBottom(controls) {
+        for(var i = 0; i < controls.length; i++) {
+            controls[i].verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
+        }
+    }
+
     static AlignControlsLeft(controls) {
         for(var i = 0; i < controls.length; i++) {
             controls[i].horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
@@ -1913,6 +1931,13 @@ class UI {
         for(var i = 0; i < controls.length; i++) {
             controls[i].horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
             controls[i].verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+        }
+    }
+
+    static AlignControlsBottomLeft(controls) {
+        for(var i = 0; i < controls.length; i++) {
+            controls[i].horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+            controls[i].verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
         }
     }
 
