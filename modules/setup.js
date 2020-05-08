@@ -9,7 +9,7 @@ window.addEventListener('DOMContentLoaded', function() {
     window.ONIPHONE = (window.navigator.platform === 'iPhone');
 
     // call the createScene function
-    var scene = createTestingScene(canvas, engine);
+    var scene = createScene(canvas, engine);
 
     // run the render loop
     engine.runRenderLoop(function(){
