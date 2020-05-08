@@ -7,6 +7,7 @@ function makePhysBody(scene, node, mesh, v, angMom, density, dt) {
     mesh.angMom = BF.TransformArMeshLocalToWorld(mesh.node, mesh.nodeAngMom);
     mesh.p = BF.ZeroVec3();
     mesh.v = v; //babylon vec3
+    mesh.scaledV = BF.ZeroVec3();
     mesh.momTens = PF.GetMomentTensor(mesh,density);
     mesh.oTens = BF.GetOTens(mesh);
     mesh.wVec3 = BF.ZeroVec3();
@@ -17,14 +18,14 @@ function makePhysBody(scene, node, mesh, v, angMom, density, dt) {
     mesh.wArrow.position = mesh.position;
 
     mesh.axes = BF.MakeAxes(mesh.name.concat(' axes'), scene, 8);
-    mesh.axes.setParent(mesh);
+    mesh.axes.parent = mesh;
 
     mesh.showWArrow = false;
     mesh.showAxes = false;
 
     mesh.step = function(g, dt) {
         mesh.oTens = BF.GetOTens(mesh);
-        mesh.p.add(mesh.v.scale(dt));
+        mesh.p.addInPlace(mesh.v.scaleToRef(dt, mesh.scaledV));
         mesh.v.y += g*dt;
         mesh.w = PF.getCorrW(mesh.oTens, mesh.momTens, mesh.angMom, dt);
         mesh.rotate(BF.SetVec3(mesh.w, mesh.wVec3), VF.Mag(mesh.w)*dt, BABYLON.Space.WORLD);
@@ -36,7 +37,7 @@ function makePhysBody(scene, node, mesh, v, angMom, density, dt) {
         mesh.wArrow.setDirLength(math.multiply(mesh.w, mesh.arrowScale));
         mesh.wArrow.position = mesh.absolutePosition;
     }
-    
+
     mesh.updateMeshNoArrow = function() {
         mesh.position = mesh.p;
     }

@@ -17,9 +17,12 @@ class MyMats {
         this.blue = new BABYLON.StandardMaterial('blue', scene);
         this.blue.diffuseColor = BF.ColorRGB(0,0,255);
 
+        this.black = new BABYLON.StandardMaterial('black', scene);
+        this.black.diffuseColor = BF.ColorRGB(0,0,0);
+
         this.chill = new BABYLON.StandardMaterial("chill", scene);
         this.chill.diffuseTexture = new BABYLON.Texture("https://images.squarespace-cdn.com/content/537cfc28e4b0785074d4ae25/1471358583532-I9LQ4LV67S3I8Y4XH7DA/?content-type=image%2Fpng", scene);
-        
+
         this.bwPattern = new BABYLON.StandardMaterial("bwPattern", scene);
         this.bwPattern.diffuseTexture = new BABYLON.Texture("https://i.imgur.com/QqKNS1o.png", scene);
 
@@ -51,6 +54,9 @@ class MyMats {
         this.sun = new BABYLON.StandardMaterial('sun', scene);
         this.sun.emissiveColor = BF.ColorRGB(255,255,100);
 
+        this.darkSun = new BABYLON.StandardMaterial('sun', scene);
+        this.darkSun.emissiveColor = BF.ColorRGB(55,55,10);
+
         this.moon = new BABYLON.StandardMaterial('moon', scene);
         this.moon.diffuseTexture = new BABYLON.Texture('https://i.imgur.com/i2iDYgn.png', scene);
         this.moon.emissiveColor = BF.ColorRGB(220,220,220);
@@ -73,8 +79,15 @@ class MyMats {
         this.jupiter = new BABYLON.StandardMaterial('jupiter', scene);
         this.jupiter.diffuseTexture = new BABYLON.Texture('https://i.imgur.com/wAGQBuU.png', scene);
 
+        this.nebula = new BABYLON.StandardMaterial('nebula', scene);
+        this.nebula.diffuseTexture = new BABYLON.Texture('https://i.imgur.com/cPAh4KM.png', scene);
+        this.nebula.emissiveColor = BF.ColorRGB(100,100,100);
+
         this.underBlock = new BABYLON.StandardMaterial('underBlock', scene);
         this.underBlock.diffuseTexture = new BABYLON.Texture("https://i.imgur.com/B2vjChP.png", scene);
+
+        this.starry = new BABYLON.StandardMaterial('starry', scene);
+        this.starry.diffuseTexture = new BABYLON.Texture('https://i.imgur.com/yRbRwyD.png', scene);
 
         this.skyBox = new BABYLON.StandardMaterial("skyBox", scene);
         this.skyBox.backFaceCulling = false;

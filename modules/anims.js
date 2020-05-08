@@ -849,7 +849,8 @@ class PendVsMass {
     }
 
     setMaterials(myMats) {
-        BF.SetMaterial(myMats.wArrow, [this.ground, this.topRope, this.sphereRope, this.cubeRope]);
+        BF.SetMaterial(myMats.nebula, [this.ground]);
+        BF.SetMaterial(myMats.wArrow, [this.topRope, this.sphereRope, this.cubeRope]);
         BF.SetMaterial(myMats.galaxy, [this.sphere, this.cube, this.spherePiv, this.cubePiv]);
     }
 
@@ -1199,4 +1200,8 @@ class SpinningRing {
         this.node.setEnabled(false);
         this.guiMenu.parentButton.isVisible = false;
     }
+}
+
+class JackInBox {
+    
 }

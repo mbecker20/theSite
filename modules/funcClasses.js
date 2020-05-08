@@ -3,7 +3,7 @@ class VF {
     static Mag(vec) {
         return math.sqrt(math.dot(vec,vec));
     }
-    
+
     static Unit(vec) {
         const magnitude=VF.Mag(vec);
         if(magnitude!==0) {
@@ -164,7 +164,7 @@ class VF {
         const azim = VF.GetAzimZX(vec);
         return [alt, azim];
     }
-    
+
     static GetAltAzimXY(vec) {
         // vec must be unit vector
         // for xy ground plane
@@ -498,6 +498,22 @@ class MF {
         // clamps x to between a and b
         return Math.min(b, Math.max(a, x));
     }
+
+    static TransformScale(val, range0, range1) {
+        // transforms val position in range0 to val position in range1
+        // (val - range0[0])/totRange0 = (returnVal - range1[0])/totRange1
+        // range0, range1 are ar2: [min, max]
+        var totRange0 = range0[1] - range0[0];
+        var totRange1 = range1[1] - range1[0];
+        return MF.TransformScaleWithTotRange(val, range0[0], totRange0, range1[0], totRange1);
+    }
+
+    static TransformScaleWithTotRange(val, minRange0, totRange0, minRange1, totRange1) {
+        // transforms val position in range0 to val position in range1
+        // (val - range0[0])/totRange0 = (returnVal - range1[0])/totRange1
+        // minRange0, minRange1 are numbers (min val of range)
+        return (val - minRange0) * (totRange1 / totRange0) + minRange1;
+    }
 }
 
 class GF {
@@ -557,38 +573,72 @@ class GF {
 
         return temp;
     }
+
+    static Wrap(func, ...args) {
+        var wrapped = function() {
+            func(...args);
+        }
+
+        return wrapped;
+    }
 }
 
 class FuncBuffer {
+    // each func in buffer is func(animKey, ...args)
     constructor() {
-        this.funcBuff={};
+        this.funcBuff = {};
+        this.funcKeys = [];
     }
 
-    addFunc(key, func, stepsUntil, numTimes, ...args) {
-        this.funcBuff[key]={func:func, args:args, stepsUntil:stepsUntil, numTimes:numTimes};
+    addFunc(key, func, stepsUntil, numTimes, onRemove, ...args) {
+        this.funcBuff[key] = {
+            func:func, args:args,
+            stepsUntil:stepsUntil,
+            numTimes:numTimes,
+            totNumTimes: numTimes,
+            onRemove: onRemove
+        };
+        this.funcKeys = Object.keys(this.funcBuff);
     }
 
     removeFunc(key) {
+        this.funcBuff[key].onRemove();
         delete this.funcBuff[key];
     }
 
-    stepAndRun() {
+    exist() {
         let keysToRemove=[];
-        Object.keys(this.funcBuffer).forEach(function(key) {
-            if(this.funcBuff[key]['stepsUntil']==0) {
-                if(this.funcBuff[key]['numTimes']!=0) {
-                    this.funcBuff[key]['func'](...this.funcBuff[key]['args']);
-                    this.funcBuff[key]['numTimes']-=1;
+        for (var i = 0; i < this.funcKeys.length; i++) {
+            if(this.funcBuff[this.funcKeys[i]]['stepsUntil'] == 0) {
+                if(this.funcBuff[this.funcKeys[i]]['numTimes'] != 0) {
+                    this.funcBuff[this.funcKeys[i]]['func'](this.getAnimKey(this.funcKeys[i]), ...this.funcBuff[this.funcKeys[i]]['args']);
+                    this.funcBuff[this.funcKeys[i]]['numTimes'] -= 1;
                 } else {
-                    keysToRemove.push(key);
+                    keysToRemove.push(this.funcKeys[i]);
                 }
             } else {
-                this.funcBuff[key]['stepsUntil']-=1;
+                this.funcBuff[this.funcKeys[i]]['stepsUntil'] -= 1;
             }
-        });
-        keysToRemove.forEach(function(key) {
-            this.removeFunc(key);
-        })
+        }
+        for(var i = 0; i < keysToRemove; i++) {
+            this.removeFunc(keyToRemove[i]);
+        }
+        this.funcKeys = Object.keys(this.funcBuff);
+    }
+
+    getAnimKey(funcKey) {
+        return this.funcBuff[funcKey].totNumTimes - this.funcBuff[funcKey].numTimes;
     }
 }
 
+class IF {
+    // interpolation functions
+    static MakeInterpFunc(obj, prop, target, interpMultFunc) {
+        var interpFunc = function(i) {
+            var delta = interpMultFunc(i) * (target - obj[prop]);
+            obj[prop] += delta;
+        }
+
+        return interpFunc;
+    }
+}

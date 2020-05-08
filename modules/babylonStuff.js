@@ -34,6 +34,11 @@ class BF {
         return cyl;
     }
 
+    static MakePlane(name, scene, width, height) {
+        // plane is oriented in x - y
+        return BABYLON.MeshBuilder.CreatePlane(name, {width: width, height: height}, scene);
+    }
+
     static MakeArrow(name, scene, direction, diameter, arrowDiameter) {
         //name is string
         //vertices pointing [1,0,0];
@@ -45,7 +50,7 @@ class BF {
         tube.bakeCurrentTransformIntoVertices();
         tip.locallyTranslate(BF.Vec3([0,.925,0]));
         tip.bakeCurrentTransformIntoVertices();
-        
+
         var arrow = BF.MakeTransformNode(name, scene); // this is the top level rotator (last to be rotated);
         arrow.secondRot = BF.MakeTransformNode(name.concat(' secondRot'), scene); // second to be rotated
         arrow.secondRot.parent = arrow;
@@ -94,7 +99,7 @@ class BF {
 
     static MakeAxes(name, scene, length, mats = window.axesMats) {
         // mats is ar4[materials] for x y and z axes, and center sphere
-        // parent axes 
+        // parent axes
         var diameter = .4;
         var arrowDiameter = .6;
         var sphereDiameter = .8;
@@ -161,7 +166,7 @@ class BF {
 
     // other helpers
     static GetOTens(mesh) {
-        mesh.computeWorldMatrix(false);
+        mesh.computeWorldMatrix();
         const ar = mesh.getWorldMatrix()._m;
         return [[ar[0],ar[1],ar[2]],[ar[4],ar[5],ar[6]],[ar[8],ar[9],ar[10]]];
     }
@@ -253,7 +258,7 @@ class BF {
     static ZeroVec4() {
         return BF.Vec4([0,0,0,0]);
     }
-    
+
     static Vec4_2(ar3,w) {
         //converts array of length 3 and one additional number to babylon vec4
         return new BABYLON.Vector4(ar3[0],ar3[1],ar3[2],w);
@@ -404,17 +409,47 @@ class BF {
     static TransformVecWorldToMeshLocal(mesh, vec3) {
         // transforms input vec3 to local space given by mesh
         // returns ar3
-        mesh.computeWorldMatrix();
         var oTens = BF.GetOTens(mesh);
+        return math.multiply(oTens, BF.Vec3ToAr(vec3));
+    }
+
+    static TransformVecWorldToOTensLocal(oTens, vec3) {
+        // transforms input vec3 to local space given by mesh
+        // returns ar3
         return math.multiply(oTens, BF.Vec3ToAr(vec3));
     }
 
     static TransformArMeshLocalToWorld(mesh, ar3) {
         // transforms input ar3 from local space given by mesh to world space
         // returns ar3
-        mesh.computeWorldMatrix();
         var oTens = BF.GetOTens(mesh);
         return math.multiply(ar3, oTens);
+    }
+
+    static MakeAnimState(anims, gui) {
+        // makes animstate without choose anim menu
+        var animKeys = Object.keys(anims);
+        var animState = {anims: anims};
+        animState.switchActiveAnim = function(animKey) {
+            window.sounds.animChange.play();
+            if (animState.activeAnim.guiMenu.panel.isVisible) {
+                gui.setActiveMenu(animState.anims[animKey].guiMenu);
+            }
+            animState.activeAnim.deactivate();
+            animState.activeAnim = animState.anims[animKey];
+            animState.activeAnim.activate();
+        }
+        var animMenus = [];
+        for(var i = 0; i < animKeys.length; i++) {
+            if (i === 0) {
+                animState.activeAnim = anims[animKeys[i]];
+            } else {
+                anims[animKeys[i]].deactivate();
+            }
+            animMenus.push(animState.anims[animKeys[i]].guiMenu);
+        }
+        gui.mainMenu.addOneOfSubMenus('animSettings', animMenus);
+        return animState;
     }
 }
 
@@ -473,7 +508,7 @@ class Cam {
             cam.attachControl(canvas);
 
             // initialize vector to be set and added to position
-            cam.deltaPos = BF.ZeroVec3(); 
+            cam.deltaPos = BF.ZeroVec3();
 
             // setup rotation
             cam.upVec = BF.Vec3([0,1,0]); // vector camMesh is rotated locally about for azim rotation
@@ -497,7 +532,7 @@ class Cam {
             cam.suspendRotToTarget = false;
             cam.suspendMoveToTarget = false;
         }
-        
+
         cam.setupCam();
         Cam.SetupKBControl(cam);
         Cam.SetupVirtualControl(cam, engine);
@@ -535,7 +570,7 @@ class Cam {
             cam.deltaAlt = cam.kbDeltaAlt + cam.jsDeltaAlt;
             cam.rotation.x += cam.deltaAlt;
             cam.boundAlt();
-            
+
             cam.deltaAzim = cam.kbDeltaAzim + cam.jsDeltaAzim;
             cam.camMesh.rotate(cam.upVec, cam.deltaAzim, BABYLON.Space.LOCAL);
         }
@@ -584,14 +619,14 @@ class Cam {
                 }
             }
         }
-        
+
         cam.updateCrouch = function() {
             if (cam.bounceOnGround) {
                 cam.crouchV = 0;
             } else {
                 cam.crouchV = Cam.CROUCHINTERPMULT() * (cam.targetCrouch - cam.position.y);
             }
-            
+
         }
 
         cam.setLookDirection = function(ar3) {
@@ -611,7 +646,7 @@ class Cam {
 
         return cam;
     }
-    
+
     static MakeKBRotateInput(cam, canvas) {
         var kbRotateInput = function() {
             this._keys = [];
@@ -625,7 +660,7 @@ class Cam {
             this.fovMin = Math.PI/24;
             this.fovMax = .99*Math.PI/2;
         };
-    
+
         kbRotateInput.prototype.getTypeName = function() {
             return "CameraKeyboardRotateInput";
         };
@@ -633,7 +668,7 @@ class Cam {
         kbRotateInput.prototype.getSimpleName = function() {
             return "keyboardRotate";
         };
-    
+
         kbRotateInput.prototype.attachControl = function(element, noPreventDefault) {
             var _this = this;
             if (!this._onKeyDown) {
@@ -656,7 +691,7 @@ class Cam {
                         }
                     }
                 };
-    
+
                 this._onKeyUp = function(evt) {
                     if (
                     _this.keysLeft.indexOf(evt.keyCode) !== -1 ||
@@ -675,7 +710,7 @@ class Cam {
                         }
                     }
                 };
-            
+
                 element.addEventListener("keydown", this._onKeyDown, false);
                 element.addEventListener("keyup", this._onKeyUp, false);
                 BABYLON.Tools.RegisterTopRootEvents(canvas, [
@@ -683,7 +718,7 @@ class Cam {
                 ]);
             }
         };
-    
+
         kbRotateInput.prototype.detachControl = function(element) {
             if (this._onKeyDown) {
                 element.removeEventListener("keydown", this._onKeyDown);
@@ -700,7 +735,7 @@ class Cam {
         kbRotateInput.prototype._onLostFocus = function (e) {
             this._keys = [];
         };
-    
+
         kbRotateInput.prototype.checkInputs = function() {
             //this is where you set what the keys do
             if (this._onKeyDown) {
@@ -725,7 +760,7 @@ class Cam {
                 }
             }
         };
-    
+
         return new kbRotateInput();
     }
 
@@ -739,7 +774,7 @@ class Cam {
             this.keysJump = [32];
             this.keysCrouch = [16];
         };
-    
+
         kbMoveInput.prototype.getTypeName = function() {
             return "CameraKeyboardMovementInput";
         };
@@ -747,7 +782,7 @@ class Cam {
         kbMoveInput.prototype.getSimpleName = function() {
             return "keyboardMovement";
         };
-    
+
         kbMoveInput.prototype.attachControl = function(element, noPreventDefault) {
             var _this = this;
             if (!this._onKeyDown) {
@@ -770,7 +805,7 @@ class Cam {
                         }
                     }
                 };
-    
+
                 this._onKeyUp = function(evt) {
                     if (
                     _this.keysLeft.indexOf(evt.keyCode) !== -1 ||
@@ -789,7 +824,7 @@ class Cam {
                         }
                     }
                 };
-            
+
                 element.addEventListener("keydown", this._onKeyDown, false);
                 element.addEventListener("keyup", this._onKeyUp, false);
                 BABYLON.Tools.RegisterTopRootEvents(canvas, [
@@ -797,7 +832,7 @@ class Cam {
                 ]);
             }
         };
-    
+
         kbMoveInput.prototype.detachControl = function(element) {
             if (this._onKeyDown) {
                 element.removeEventListener("keydown", this._onKeyDown);
@@ -814,7 +849,7 @@ class Cam {
         kbMoveInput.prototype._onLostFocus = function (e) {
             this._keys = [];
         };
-    
+
         kbMoveInput.prototype.checkInputs = function() {
             //this is where you set what the keys do
             if (this._onKeyDown) {
@@ -842,7 +877,7 @@ class Cam {
             }
             cam.targetCrouch = math.min(cam.targetCrouch + Cam.CROUCHSTEP(), Cam.HEIGHT()); // always runs to return targetCrouch to 0
         };
-    
+
         return new kbMoveInput();
     }
 
@@ -871,7 +906,7 @@ class Cam {
         cam.kbRotToTarget = function() {
             cam.kbDeltaAlt = Cam.KBROTINTERPMULT() * cam.kbTargetRot.x;
             cam.kbTargetRot.x -= cam.kbDeltaAlt;
-            
+
             cam.kbDeltaAzim = Cam.KBROTINTERPMULT() * cam.kbTargetRot.y;
             cam.kbTargetRot.y -= cam.kbDeltaAzim;
         }
@@ -882,6 +917,8 @@ class Cam {
         cam.vcModes = {};
         cam.vcModes.hybridController = UI.MakeVirtualHybridController(window.gui, engine);
         cam.vcModes.dualJSController = UI.MakeVirtualJoystickController(window.gui, engine);
+        window.pointerManager.addCamCallbacksToMode('hybridController', cam.vcModes.hybridController);
+        window.pointerManager.addCamCallbacksToMode('dualJSController', cam.vcModes.dualJSController);
 
         cam.jsTargetPos = BF.Vec2([0,0]);
         cam.jsForwardV = 0;
@@ -931,7 +968,7 @@ class Cam {
         cam.vcModes.dualJSRotToTarget = function() {
             cam.jsDeltaAlt = Cam.JOYSTICKROTINTERPMULT() * cam.jsTargetRot.x;
             cam.jsTargetRot.x -= cam.jsDeltaAlt;
-            
+
             cam.jsDeltaAzim = Cam.JOYSTICKROTINTERPMULT() * cam.jsTargetRot.y;
             cam.jsTargetRot.y -= cam.jsDeltaAzim;
         }
@@ -939,12 +976,14 @@ class Cam {
         cam.vcModes.hybridRotToTarget = function() {
             cam.jsDeltaAlt = Cam.HYBRIDROTINTERPMULT() * cam.jsTargetRot.x;
             cam.jsTargetRot.x -= cam.jsDeltaAlt;
-            
+
             cam.jsDeltaAzim = Cam.HYBRIDROTINTERPMULT() * cam.jsTargetRot.y;
             cam.jsTargetRot.y -= cam.jsDeltaAzim;
         }
 
         cam.switchVirtualControl = function(name) {
+            // name is 'hybrid' and 'dualJS'
+            window.pointerManager.switchActiveCamMode(name.concat('Controller'));
             cam.virtualController = cam.vcModes[name.concat('Controller')];
             cam.virtualControllerCheck = cam.vcModes[name.concat('Check')];
             cam.jsRotToTarget = cam.vcModes[name.concat('RotToTarget')];
@@ -960,7 +999,7 @@ class Cam {
 
 class UI {
     static SPACING() {return '15px'};
-    
+
     // standard width height
     static STANDARDW() {return '200px'};
     static STANDARDH() {return '40px'};
@@ -985,7 +1024,7 @@ class UI {
     static JOYSTICKOUTERCOLOR() {return 'grey'};
     static JOYSTICKOUTERBOUNDCOLOR() {return 'grey'};
     static JOYSTICKOUTERALPHA() {return .5};
-    
+
     static JOYSTICKSTICKRAD() {return 50};
     static JOYSTICKSTICKCOLOR() {return 'black'};
     static JOYSTICKSTICKBOUNDCOLOR() {return 'black'};
@@ -996,7 +1035,7 @@ class UI {
     static MakeGUI(canvas) {
         var gui = {}
         gui.texture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI('gui');
-    
+
         // make show/hide button
         gui.shButton = UI.MakeShowHideButton(gui);
         gui.muteButton = UI.MakeMuteButton(gui);
@@ -1005,7 +1044,7 @@ class UI {
         gui.mainMenu = UI.MakeMainMenu(gui, canvas);
         gui.activeMenu = gui.mainMenu;
         gui.activeMenu.hide();
-    
+
         gui.setActiveMenu = function(menu) {
             gui.activeMenu.hide(); // hide current active menu
             gui.activeMenu = menu;
@@ -1021,7 +1060,7 @@ class UI {
                 gui.addControl(controls[i]);
             }
         }
-    
+
         return gui;
     }
 
@@ -1063,7 +1102,7 @@ class UI {
         mainMenu.addSubMenu = function(subMenu) {
             mainMenu.addControl(subMenu.name.concat('PB'), subMenu.parentButton);
         }
-        
+
         mainMenu.addOneOfSubMenus = function(name, subMenus) {
             // for when only 1 parent button will be active at a time
             var oneOfPanel = UI.MakePanel();
@@ -1117,7 +1156,7 @@ class UI {
 
         menu.sv = UI.MakeScrollViewer();
         menu.panel.addControl(menu.sv);
-        
+
         menu.svPanel = UI.MakePanel(true, false, false);
         //menu.svPanel.background = 'white';
         menu.svPanel.width = UI.SUBMENUW();
@@ -1284,7 +1323,7 @@ class UI {
         });
         controls.push(dualJSButton);
         names.push('dualJSButton');
-        
+
         cvcMenu.activeBut = hybridButton;
         cvcMenu.activeBut.color = 'green';
         cvcMenu.addControls(names, controls);
@@ -1353,6 +1392,7 @@ class UI {
                 controller.leftStickPos = [x, y];
                 controller.setJoystickBackgroundPosition('left');
                 controller.leftJoystick.show();
+                return true;
             } else if (x > controller.middleWidth/2 && !controller.rightFingerDown) {
                 controller.rightFingerID = pointerInfo.event.pointerId;
                 controller.rightFingerDown = true;
@@ -1360,7 +1400,9 @@ class UI {
                 controller.rightStickPos = [x, y];
                 controller.setJoystickBackgroundPosition('right');
                 controller.rightJoystick.show();
+                return true;
             }
+            return false;
         }
 
         controller.pointerUp = function(pointerInfo) {
@@ -1454,12 +1496,15 @@ class UI {
                 controller.leftStickPos = [x, y];
                 controller.setJoystickBackgroundPosition('left');
                 controller.leftJoystick.show();
+                return true;
             } else if (x > controller.middleWidth/2 && !controller.rightFingerDown) {
                 controller.rightFingerID = pointerInfo.event.pointerId;
                 controller.rightFingerDown = true;
                 controller.currentPos = [x, y];
                 controller.prevPos = [x, y];
+                return true;
             }
+            return false;
         }
 
         controller.pointerUp = function(pointerInfo) {
@@ -1750,7 +1795,7 @@ class UI {
         return muteButton;
     }
 
-    static MakeFullscreenButton(canvas) { 
+    static MakeFullscreenButton(canvas) {
         var fsButton = UI.MakeDualButton('fsButton', 'enter fullscreen', 'exit fullscreen', function() {
             if(screenfull.isEnabled) {
                 screenfull.exit();
@@ -1959,5 +2004,580 @@ class UI {
             controls[i].width = width;
             controls[i].height = height;
         }
+    }
+}
+
+class UI3D {
+    static SLIDERLINEWIDTH() { return .25 }
+    static SLIDERLINEHEIGHT() { return .1 }
+    static SLIDERTEXTPLANEHEIGHT() { return 10 }
+    static SLIDERTEXTFONTSIZE() { return 130 }
+
+    static RISINGPANELDEPTH() { return 1 }
+    static RISINGPANELANIMKEYS() { return 40 }
+    static RISINGPANELCONTROLANIMKEYS() { return 20 }
+
+    static PUCKDEPTH() { return .9 }
+
+    static MakeTextPlane(name, scene, width, height, text, fontSize) {
+        // oriented in X-Y plane, text on pos z side
+        var textPlane = BF.MakePlane(name, scene, width, height);
+        var advancedTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateForMesh(textPlane);
+
+        textPlane.textBlock = UI.MakeTextBlock(text, fontSize);
+        textPlane.textBlock.width = 1;
+        textPlane.textBlock.height = 1;
+        textPlane.textBlock.background = 'green';
+
+        advancedTexture.addControl(textPlane.textBlock);
+
+        textPlane.setText = function(text) {
+            textPlane.textBlock.text = text;
+        }
+
+        return textPlane;
+    }
+
+    static MakeSlider(name, scene, sliderMesh, backgroundMesh, range, initVal, length, onValChange, verticleOffset = 0) {
+        // uses position of a sphere on a line in 3d to set slider value
+        // range is [minVal, maxVal]
+        // mode is the pointerManager interact mode control is added to
+        // default slider oriented sitting in x-z plane and centered at origin
+        // slider can move length/2 in pos/neg x direction
+        // onValChange is function of value
+        var slider = {};
+        slider.node = BF.MakeTransformNode(name.concat('Node'), scene);
+        slider.name = name;
+
+        slider.mesh = sliderMesh;
+        slider.mesh.parent = slider.node;
+        slider.mesh.position.y = verticleOffset;
+        slider.mesh.material = window.myMats.sun;
+
+        slider.backgroundMesh = backgroundMesh;
+        slider.rangeSize = range[1] - range[0];
+        slider.onValChange = onValChange;
+
+        slider.lineHeight = UI3D.SLIDERLINEHEIGHT();
+        slider.line = BF.MakeBox(name.concat('Line'), scene, length, slider.lineHeight, UI3D.SLIDERLINEWIDTH(), {}, false);
+        slider.line.parent = slider.node;
+        slider.line.position.y = UI3D.SLIDERLINEHEIGHT()/2;
+        BF.BakeMeshs([slider.line]);
+        slider.line.material = window.myMats.darkSun;
+
+        slider.pointerDown = function(pointerInfo) {
+            if (pointerInfo.pickInfo.pickedMesh == slider.mesh) {
+                return true;
+            }
+            return false;
+        }
+
+        slider.pointerUp = function(pointerInfo) {
+            // may not need to do anything bc pointerManager will unlink control
+        }
+
+        slider.pointerMove = function(pointerInfo) {
+            var sliderPos = slider.getNewSliderPos(scene);
+            if (sliderPos) {
+                slider.mesh.position.x = MF.Clamp(sliderPos, -length/2, length/2);
+                slider.updateValue();
+                slider.onValChange(slider.value);
+                if (slider.textPlane) {
+                    slider.textPlane.setText(slider.text + slider.getValString() + ' ' + slider.units);
+                }
+            }
+        }
+
+        slider.getNewSliderPos = function(scene) {
+            var pickInfo = scene.pick(scene.pointerX, scene.pointerY, function (mesh) { return mesh == slider.backgroundMesh; });
+            if (pickInfo.hit) {
+                return BF.TransformVecWorldToOTensLocal(slider.oTens, pickInfo.pickedPoint.subtractInPlace(slider.node.position))[0];
+            }
+            return null;
+        }
+
+        slider.updateValue = function() {
+            slider.value = (slider.mesh.position.x/length + .5) * (slider.rangeSize) + range[0];
+        }
+
+        slider.addToPointerManager = function(mode) {
+            window.pointerManager.addInteractCallbacksToMode(slider.name, slider, mode);
+        }
+
+        slider.setSliderPositionFromValue = function(val) {
+            val = MF.Clamp(val, range[0], range[1]);
+            slider.mesh.position.x = ((val - range[0]) / slider.rangeSize - .5) * length;
+        }
+
+        slider.setValue = function(val) {
+            slider.value = val;
+            slider.setSliderPositionFromValue(val);
+        }
+
+        slider.addText = function(text, units = '') {
+            slider.text = text.concat(': ');
+            slider.units = units;
+            var sliderText = slider.text + slider.getValString() + ' ' + units;
+            slider.textPlane = UI3D.MakeTextPlane(slider.name.concat('TextPlane'), scene, length, UI3D.SLIDERTEXTPLANEHEIGHT(), sliderText, UI3D.SLIDERTEXTFONTSIZE());
+            slider.textPlane.parent = slider.node;
+            slider.textPlane.position.z = -3;
+            slider.textPlane.position.y = .1;
+            slider.textPlane.rotation.x = Math.PI/2;
+        }
+
+        slider.getValString = function() {
+            var valString = (math.round(10*slider.value)/10).toString();
+            if (valString.length < 3) {
+                valString = valString.concat('.0');
+            }
+            return valString;
+        }
+
+        slider.updateNodeOTens = function() {
+            // called after rotating slider node
+            slider.oTens = BF.GetOTens(slider.node);
+        }
+
+        slider.setValue(initVal);
+        slider.updateNodeOTens();
+
+        return slider;
+    }
+
+    static MakeSphereSlider(name, scene, sphereRad, backgroundMesh, range, initVal, length, onValChange, verticleOffset = 0) {
+        var sphere = BF.MakeSphere(name.concat('Sphere'), scene, 2 * sphereRad);
+        return UI3D.MakeSlider(name, scene, sphere, backgroundMesh, range, initVal, length, onValChange, verticleOffset);
+    }
+
+    static MakePuckSlider(name, scene, puckDiameter, puckHeight, backgroundMesh, range, initVal, length, fontSize, onValChange) {
+        // oriented with cyl axis in y dir - ie on ground facing up
+        var puck = BF.MakeCylinder(name.concat('Puck'), scene, puckHeight, puckDiameter);
+        puck.position.y = puckHeight/2;
+        BF.BakeMeshs([puck]);
+
+        var slider = UI3D.MakeSlider(name, scene, puck, backgroundMesh, range, initVal, length, onValChange);
+        slider.height = puckHeight;
+
+        var valTextSide = puckDiameter / Math.sqrt(2);
+        slider.valText = UI3D.MakeTextPlane(name.concat('ValText'), scene, valTextSide, valTextSide, (Math.round(slider.value*10)/10).toString(), fontSize);
+        slider.valText.parent = slider.mesh;
+        slider.valText.position.y = puckHeight + .1;
+        slider.valText.rotation.x = Math.PI/2;
+
+        slider.pointerDown = function(pointerInfo) {
+            if (pointerInfo.pickInfo.pickedMesh == slider.mesh || pointerInfo.pickInfo.pickedMesh == slider.valText) {
+                return true;
+            }
+            return false;
+        }
+
+        slider.pointerMove = function(pointerInfo) {
+            var sliderPos = slider.getNewSliderPos(scene);
+            if (sliderPos) {
+                slider.mesh.position.x = MF.Clamp(sliderPos, -length/2, length/2);
+                slider.updateValue();
+                slider.onValChange(slider.value);
+                slider.valText.setText(slider.getValString());
+            }
+        }
+
+        slider.addText = function(text) {
+            slider.text = text;
+            slider.textPlane = UI3D.MakeTextPlane(slider.name.concat('TextPlane'), scene, length, UI3D.SLIDERTEXTPLANEHEIGHT(), slider.text, UI3D.SLIDERTEXTFONTSIZE());
+            slider.textPlane.parent = slider.node;
+            slider.textPlane.position.z = -3;
+            slider.textPlane.position.y = .1;
+            slider.textPlane.rotation.x = Math.PI/2;
+        }
+
+        return slider;
+    }
+
+    static MakeRisingPanel(name, scene, width, height, downHeight, gridDimensions, pointerManagerMode) {
+        // risingPanel is oriented in x-y plane
+        // gridDimensions is [numRows, numColumns]
+        var risingPanel = {};
+        risingPanel.node = BF.MakeTransformNode(name.concat('Node'), scene);
+        risingPanel.panel = BF.MakeBox(name.concat('Panel'), scene, width, height, UI3D.RISINGPANELDEPTH());
+        risingPanel.upTarget = height/2;
+        risingPanel.downTarget = -height/2 + downHeight
+        risingPanel.panel.position.y = risingPanel.downTarget;
+        risingPanel.panel.parent = risingPanel.node;
+        risingPanel.isDown = true;
+
+        var controlNode = BF.MakeTransformNode(name.concat('ControlNode'), scene);
+        controlNode.parent = risingPanel.panel;
+        controlNode.rotation.x = -Math.PI/2;
+        controlNode.position.z = -UI3D.RISINGPANELDEPTH()/2;
+        risingPanel.controls = {node: controlNode};
+
+        risingPanel.pointerDown = function(pointerInfo) {
+            if (pointerInfo.pickInfo.pickedMesh == risingPanel.panel) {
+                risingPanel.isDown = !risingPanel.isDown;
+                if (window.funcBuffer[name]) {
+                    risingPanel.removeFromFuncBuffer();
+                    if (risingPanel.isDown) {
+                        risingPanel.onPanelDown();
+                    } else {
+                        risingPanel.onPanelUp();
+                    }
+                } else {
+                    if (risingPanel.isDown) {
+                        risingPanel.onPanelDown();
+                    } else {
+                        risingPanel.onPanelUp();
+                    }
+                }
+                return true;
+            }
+            return false;
+        }
+
+        risingPanel.onPanelDown = function() {
+            window.funcBuffer.addFunc(name, risingPanel.moveDown, UI3D.RISINGPANELCONTROLANIMKEYS(), UI3D.RISINGPANELANIMKEYS(), GF.DoNothing);
+            if (risingPanel.controls.sliders) {
+                for (var i = 0; i < risingPanel.controls.sliders.length; i++) {
+                    window.funcBuffer.addFunc(name.concat('Slider') + i, risingPanel.controls.sliders[i].moveIn, 0, UI3D.RISINGPANELCONTROLANIMKEYS(), GF.DoNothing);
+                    window.funcBuffer.addFunc(name.concat('SliderLine') + i, risingPanel.controls.sliders[i].moveLineIn, 0, UI3D.RISINGPANELCONTROLANIMKEYS(), GF.DoNothing);
+                }
+            }
+            if (risingPanel.controls.knobNode) {
+                window.funcBuffer.addFunc(name.concat('KnobNode'), risingPanel.controls.knobNode.moveIn, 0, UI3D.RISINGPANELCONTROLANIMKEYS(), GF.DoNothing);
+            }
+        }
+
+        risingPanel.onPanelUp = function() {
+            window.funcBuffer.addFunc(name, risingPanel.moveUp, 0, UI3D.RISINGPANELANIMKEYS(), GF.DoNothing);
+            if (risingPanel.controls.sliders) {
+                for (var i = 0; i < risingPanel.controls.sliders.length; i++) {
+                    window.funcBuffer.addFunc(name.concat('Slider') + i, risingPanel.controls.sliders[i].moveOut, UI3D.RISINGPANELANIMKEYS(), UI3D.RISINGPANELCONTROLANIMKEYS(), GF.DoNothing);
+                    window.funcBuffer.addFunc(name.concat('SliderLine') + i, risingPanel.controls.sliders[i].moveLineOut, UI3D.RISINGPANELANIMKEYS(), UI3D.RISINGPANELCONTROLANIMKEYS(), GF.DoNothing);
+                }
+            }
+            if (risingPanel.controls.knobNode) {
+                window.funcBuffer.addFunc(name.concat('KnobNode'), risingPanel.controls.knobNode.moveOut, UI3D.RISINGPANELANIMKEYS(), UI3D.RISINGPANELCONTROLANIMKEYS(), GF.DoNothing);
+            }
+        }
+
+        risingPanel.removeFromFuncBuffer = function() {
+            window.funcBuffer.removeFunc(name);
+            if (risingPanel.controls.sliders) {
+                for (var i = 0; i < risingPanel.controls.sliders.length; i++) {
+                    window.funcBuffer.removeFunc(name.concat('Slider') + i);
+                    window.funcBuffer.removeFunc(name.concat('SliderLine') + i);
+                }
+            }
+        }
+
+        risingPanel.pointerUp = GF.DoNothing;
+
+        risingPanel.pointerMove = GF.DoNothing;
+
+        risingPanel.interpMultFunc = function(i) { return .01 * i }
+
+        risingPanel.moveUp = IF.MakeInterpFunc(risingPanel.panel.position, 'y', risingPanel.upTarget, risingPanel.interpMultFunc);
+
+        risingPanel.moveDown = IF.MakeInterpFunc(risingPanel.panel.position, 'y', risingPanel.downTarget, risingPanel.interpMultFunc);
+
+        risingPanel.addToPointerManager = function(mode) {
+            window.pointerManager.addInteractCallbacksToMode(risingPanel.name, risingPanel, mode);
+        }
+
+        risingPanel.makeGrid = function(gridDimensions) {
+            // gridDimensions is [numRow, numCol]
+            risingPanel.grid = [];
+            var scale = 1.3; // spread out the grid a little bit;
+            var hStep = width / (gridDimensions[1] + 1);
+            var vStep = height / (gridDimensions[0] + 1);
+            for (var i = 1; i < gridDimensions[0] + 1; i++) {
+                var row = [];
+                var zpos = height/2 - i*vStep;
+                for (var j = 1; j < gridDimensions[1] + 1; j++) {
+                    var pos = BF.Vec3([-width/2 + j*hStep, 0, zpos]).scaleInPlace(scale);
+                    row.push(pos);
+                }
+                risingPanel.grid.push(row);
+            }
+        }
+
+        risingPanel.addSlider = function(slider, gridCoord) {
+            // gridCoord is [row, col]
+            // slider needs a height
+            if (!risingPanel.controls.sliders) {
+                risingPanel.controls.sliders = [];
+            }
+
+            slider.node.parent = risingPanel.controls.node;
+            slider.updateNodeOTens();
+            slider.node.position = risingPanel.grid[gridCoord[0]][gridCoord[1]];
+            slider.addToPointerManager(pointerManagerMode);
+            slider.mesh.position.y = -slider.height + .02;
+            slider.line.position.y = -slider.lineHeight + .01;
+
+            slider.interpMultFunc = function(i) { return i * .05 }
+            slider.moveOut = IF.MakeInterpFunc(slider.mesh.position, 'y', 0, slider.interpMultFunc);
+            slider.moveIn = IF.MakeInterpFunc(slider.mesh.position, 'y', -slider.height + .02, slider.interpMultFunc);
+            slider.moveLineOut = IF.MakeInterpFunc(slider.line.position, 'y', 0, slider.interpMultFunc);
+            slider.moveLineIn = IF.MakeInterpFunc(slider.line.position, 'y', -slider.lineHeight + .01, slider.interpMultFunc);
+
+            risingPanel.controls.sliders.push(slider);
+        }
+
+        risingPanel.addKnob = function(knob, gridCoord) {
+            // gridCoord is [row, col]
+            if (!risingPanel.controls.knobNode) {
+                risingPanel.controls.knobNode = BF.MakeTransformNode(name.concat('KnobNode'), scene);
+                risingPanel.controls.knobNode.parent = risingPanel.controls.node;
+                risingPanel.controls.knobNode.position.y = -knob.height + .02;
+                risingPanel.controls.knobNode.interpMultFunc = function(i) { return i * .05 }
+                risingPanel.controls.knobNode.moveOut = IF.MakeInterpFunc(risingPanel.controls.knobNode.position, 'y', 0, risingPanel.controls.knobNode.interpMultFunc);
+                risingPanel.controls.knobNode.moveIn = IF.MakeInterpFunc(risingPanel.controls.knobNode.position, 'y', -knob.height + .02, risingPanel.controls.knobNode.interpMultFunc);
+            }
+
+            knob.node.parent = risingPanel.controls.knobNode;
+            knob.node.position = risingPanel.grid[gridCoord[0]][gridCoord[1]];
+            knob.addToPointerManager(pointerManagerMode);
+        }
+
+        risingPanel.makeGrid(gridDimensions);
+        risingPanel.addToPointerManager(pointerManagerMode);
+
+        return risingPanel;
+    }
+
+    static MakeTwistKnob(name, scene, diameter, depth, backgroundMesh, range, initVal, sensitivityMult, fontSize, onValChange) {
+        var knob = {};
+        knob.node = BF.MakeTransformNode(name.concat('node'), scene);
+        knob.name = name;
+        knob.range = range;
+        knob.totRange = range[1] - range[0];
+        knob.value = initVal;
+        knob.maxRot = 9*Math.PI/10;
+        knob.minRot = -knob.maxRot;
+        knob.totRot = 2 * knob.maxRot;
+        knob.sensitivity = sensitivityMult;
+        knob.backgroundMesh = backgroundMesh;
+        knob.onValChange = onValChange;
+        knob.height = depth;
+
+        knob.mesh = BF.MakeCylinder(name.concat('Mesh'), scene, depth, diameter);
+        knob.mesh.position.y = depth/2;
+        BF.BakeMeshs([knob.mesh]);
+        knob.mesh.parent = knob.node;
+        knob.mesh.material = window.myMats.lightBlue;
+
+        var indWidth = diameter/24;
+        var indLength = diameter/5;
+        knob.indicator = BF.MakeBox(name.concat('Indicator'), scene, indWidth, indWidth, indLength);
+        knob.indicator.parent = knob.mesh;
+        knob.indicator.position.z = diameter/2 - indLength/2;
+        knob.indicator.position.y = depth;
+        knob.indicator.material = window.myMats.black;
+
+        var valTextSide = diameter/Math.sqrt(2);
+        knob.valText = UI3D.MakeTextPlane(name.concat('ValText'), scene, valTextSide, valTextSide, (Math.round(knob.value*10)/10).toString(), fontSize);
+        knob.valText.parent = knob.node;
+        knob.valText.rotation.x = Math.PI/2;
+        knob.valText.position.y = depth + .1;
+
+        knob.pointerDown = function(pointerInfo) {
+            if (pointerInfo.pickInfo.pickedMesh == knob.mesh || pointerInfo.pickInfo.pickedMesh == knob.valText) {
+                knob.startVal = knob.value;
+                knob.startPos = scene.pointerY;
+                return true;
+            }
+            return false;
+        }
+
+        knob.pointerUp = GF.DoNothing;
+
+        knob.pointerMove = function(pointerInfo) {
+            var res = knob.setNewVal(scene);
+            if (res) {
+                knob.setRot();
+                knob.valText.setText(knob.getValString());
+                knob.onValChange(knob.value);
+                return true;
+            }
+            return false;
+        }
+
+        knob.setNewVal = function(scene) {
+            knob.value = MF.Clamp(knob.startVal + knob.sensitivity * (knob.startPos - scene.pointerY), knob.range[0], knob.range[1]);
+            return true;
+        }
+
+        knob.getValString = function() {
+            return (Math.round(knob.value*10)/10).toString();
+        }
+
+        knob.setValText = function() {
+            knob.valText.setText(knob.getValString());
+        }
+
+        knob.setRot = function() {
+            knob.mesh.rotation.y = MF.TransformScaleWithTotRange(knob.value, knob.range[0], knob.totRange, knob.minRot, knob.totRot);
+        }
+
+        knob.addToPointerManager = function(mode) {
+            window.pointerManager.addInteractCallbacksToMode(knob.name, knob, mode);
+        }
+
+        knob.setRot();
+
+        return knob;
+    }
+
+    static MakeTwistKnobPrecise(name, scene, diameter, depth, backgroundMesh, range, initVal, sensitivityMult, fontSize, onValChange) {
+        var knob = UI3D.MakeTwistKnob(name, scene, diameter, depth, backgroundMesh, range, initVal, sensitivityMult, fontSize, onValChange);
+
+        knob.getValString = function() {
+            return (Math.round(knob.value*100)/100).toString();
+        }
+
+        return knob;
+    }
+
+    static MakeTwistKnobInt(name, scene, diameter, depth, backgroundMesh, range, initVal, sensitivityMult, fontSize, onValChange) {
+        var knob = UI3D.MakeTwistKnob(name, scene, diameter, depth, backgroundMesh, range, initVal, sensitivityMult, fontSize, onValChange);
+
+        knob.setNewVal = function(scene) {
+            knob.value = Math.round(MF.Clamp(knob.startVal + knob.sensitivity * (knob.startPos - scene.pointerY), knob.range[0], knob.range[1]));
+            return true;
+        }
+
+        knob.getValString = function() {
+            return knob.value.toString();
+        }
+
+        return knob;
+    }
+}
+
+class PointerManager {
+    // handles the scene pointer observable
+    // controls which pointer callbacks are active
+    constructor (scene) {
+        this.interactModes = {};
+        this.camModes = {};
+        this.activePointerUps = {};
+        this.activePointerMoves = {};
+        this.activePointerIds = [];
+        scene.onPointerObservable.add(PointerManager.MakeOnPointerObservableCallback(this));
+    }
+
+    pointerDown(pointerInfo) {
+        if (this.interactModes.activeMode) {
+            var aiMode = this.interactModes.activeMode; //active interact mode
+            var aiDownKeys = aiMode.pointerDownKeys; // active interact pointerDown keys
+            var isInteracting = false;
+            for (var i = 0; i < aiDownKeys.length; i++) {
+                isInteracting = aiMode.pointerDowns[aiDownKeys[i]](pointerInfo);
+                if (isInteracting) {
+                    this.activePointerUps[pointerInfo.event.pointerId] = aiMode.pointerUps[aiDownKeys[i]];
+                    this.activePointerMoves[pointerInfo.event.pointerId] = aiMode.pointerMoves[aiDownKeys[i]];
+                    this.activePointerIds = Object.keys(this.activePointerUps);
+                    break;
+                }
+            }
+            if (!isInteracting) {
+                var res = this.camModes.activeMode.pointerDown(pointerInfo);
+                if (res) {
+                    this.activePointerUps[pointerInfo.event.pointerId] = this.camModes.activeMode.pointerUp;
+                    this.activePointerMoves[pointerInfo.event.pointerId] = this.camModes.activeMode.pointerMove;
+                    this.activePointerIds = Object.keys(this.activePointerUps);
+                }
+            }
+        } else {
+            var res = this.camModes.activeMode.pointerDown(pointerInfo);
+            if (res) {
+                this.activePointerUps[pointerInfo.event.pointerId] = this.camModes.activeMode.pointerUp;
+                this.activePointerMoves[pointerInfo.event.pointerId] = this.camModes.activeMode.pointerMove;
+                this.activePointerIds = Object.keys(this.activePointerUps);
+            }
+        }
+    }
+
+    pointerUp(pointerInfo) {
+        var activeIds = this.activePointerIds; //active interact mode
+        for (var i = 0; i < activeIds.length; i++) {
+            if (activeIds[i] == pointerInfo.event.pointerId) { // use == for type conversion (activeIds are converted to strings, pointerId is number)
+                this.activePointerUps[activeIds[i]](pointerInfo);
+                delete this.activePointerUps[activeIds[i]];
+                delete this.activePointerMoves[activeIds[i]];
+                this.activePointerIds = Object.keys(this.activePointerUps);
+            }
+        }
+    }
+
+    pointerMove(pointerInfo) {
+        var activeIds = this.activePointerIds; //active interact mode
+        for (var i = 0; i < activeIds.length; i++) {
+            if (activeIds[i] == pointerInfo.event.pointerId) {
+                this.activePointerMoves[activeIds[i]](pointerInfo);
+            }
+        }
+    }
+
+    addInteractCallbacksToMode (name, obj, mode) {
+        // modeType is 'interact' or 'cam'
+        if (!this.interactModes[mode]) {
+            this.interactModes[mode] = {
+                pointerDowns: {},
+                pointerUps: {},
+                pointerMoves: {}
+            }
+        }
+
+        this.interactModes[mode].pointerDowns[name] = obj.pointerDown;
+        this.interactModes[mode].pointerDownKeys = Object.keys(this.interactModes[mode].pointerDowns);
+        this.interactModes[mode].pointerUps[name] = obj.pointerUp;
+        this.interactModes[mode].pointerMoves[name] = obj.pointerMove;
+
+        if (!this.interactModes.activeMode) {
+            this.interactModes.activeMode = this.interactModes[mode];
+        }
+    }
+
+    addCamCallbacksToMode (mode, obj) {
+        // modeType is 'interact' or 'cam'
+        if (!this.camModes[mode]) {
+            this.camModes[mode] = {};
+        }
+
+        this.camModes[mode].pointerDown = obj.pointerDown;
+        this.camModes[mode].pointerUp = obj.pointerUp;
+        this.camModes[mode].pointerMove = obj.pointerMove;
+
+        if (!this.camModes.activeMode) {
+            this.camModes.activeMode = this.camModes[mode];
+        }
+    }
+
+    switchActiveInteractMode (mode) {
+        // modeType is 'cam' or 'interact'
+        this[interactModes].activeMode = this[interactModes][mode];
+    }
+
+    switchActiveCamMode (mode) {
+        // modeType is 'cam' or 'interact'
+        this.camModes.activeMode = this.camModes[mode];
+    }
+
+    static MakeOnPointerObservableCallback(pointerManager) {
+        var onPointerObservableCallback = function(pointerInfo) {
+            switch (pointerInfo.type) {
+                case BABYLON.PointerEventTypes.POINTERDOWN:
+                    pointerManager.pointerDown(pointerInfo);
+                    break;
+                case BABYLON.PointerEventTypes.POINTERUP:
+                    pointerManager.pointerUp(pointerInfo);
+                    break;
+                case BABYLON.PointerEventTypes.POINTERMOVE:
+                    pointerManager.pointerMove(pointerInfo);
+                    break;
+            }
+        }
+        return onPointerObservableCallback;
     }
 }

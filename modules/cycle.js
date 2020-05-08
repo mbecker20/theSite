@@ -31,7 +31,7 @@ class Cycle {
         this.setupLightsShadows(scene, shadowQual);
 
         this.setupMeshs(scene, myMats, this.shadows);
-        
+
         this.makeCamModes(scene);
         this.interpStep = 0;
 
@@ -43,10 +43,10 @@ class Cycle {
         this.ambLight0.intensity = this.ambientIntensity(this.time, this.orbitW);
         this.ambLight1.intensity = this.ambLight0.intensity;
 
-        this.moon.position = this.moonPosition(this.time, this.orbitR, this.orbitW, this.moonPos);
-        this.moonLight.position = this.moon.position
+        this.setMoonPosition(this.time, this.orbitR, this.orbitW, this.moon.position);
+        this.moonLight.position = this.moon.position;
 
-        this.sun.position = this.sunPosition(this.time, this.orbitR, this.orbitW, this.sunPos);
+        this.setSunPosition(this.time, this.orbitR, this.orbitW, this.sun.position);
         this.sunLight.position = this.sun.position;
 
         this.moon.rotation.y += this.moonW * this.dt;
@@ -211,7 +211,7 @@ class Cycle {
             neg['neg'.concat(plane[0])] = {'newModeKey': 'neg'.concat(Cycle.AXES()[(i+1)%3])};
             neg['pos'.concat(plane[1])] = {'newModeKey': 'pos'.concat(Cycle.AXES()[(i+2)%3])};
             neg['neg'.concat(plane[1])] = {'newModeKey': 'neg'.concat(Cycle.AXES()[(i+2)%3])};
-            
+
             neg['pos'.concat(plane[0])].getTargetDir = this.makeGetTargetDirFunc(plane, 1, 0);
             neg['neg'.concat(plane[0])].getTargetDir = this.makeGetTargetDirFunc(plane, -1, 0);
             neg['pos'.concat(plane[1])].getTargetDir = this.makeGetTargetDirFunc(plane, 1, 1);
@@ -326,12 +326,11 @@ class Cycle {
     setupLightsShadows(scene, shadowQual) {
         this.ambLight0 = new BABYLON.HemisphericLight('ambLight0', new BABYLON.Vector3(0,1,0), scene);
         this.ambLight1 = new BABYLON.HemisphericLight('ambLight1', new BABYLON.Vector3(0,-1,0), scene);
-        
-        this.moonPos = BF.ZeroVec3();
-        this.moonLight = new BABYLON.PointLight('moonLight', this.moonPos, scene);
+
+        this.moonLight = new BABYLON.PointLight('moonLight', BF.ZeroVec3(), scene);
         this.moonLight.intensity = .5
         this.moonLight.diffuse = BF.ColorRGB(100,100,100);
- 
+
         this.shadowQual = 1024 // 512 or 1024 for laptop, 2048 for desktop
 
         var moonShadows = new BABYLON.ShadowGenerator(shadowQual, this.moonLight);
@@ -339,8 +338,7 @@ class Cycle {
         //moonShadows.useExponentialShadowMap = true;
         //moonShadows.useBlurExponentialShadowMap = true;
 
-        this.sunPos = BF.ZeroVec3()
-        this.sunLight = new BABYLON.PointLight('sunLight', this.sunPos, scene);
+        this.sunLight = new BABYLON.PointLight('sunLight', BF.ZeroVec3(), scene);
         this.sunLight.intensity = .7;
         this.sunLight.diffuse = BF.ColorRGB(255,255,153);
 
@@ -363,12 +361,9 @@ class Cycle {
         //create sun and moon meshs
         this.moon = BABYLON.MeshBuilder.CreateSphere('moon', {diameter:8, segments:16}, scene);
         this.moon.material = myMats.moon;
-        
+
         this.sun = BABYLON.MeshBuilder.CreateSphere('moon', {diameter:8, segments:16}, scene);
         this.sun.material = myMats.sun;
-
-        //place axes at origin for reference during development
-        //var worldAxes = BF.MakeAxes('worldAxes', scene, 4);
 
         this.underBlock = BABYLON.MeshBuilder.CreateBox('underBlock', {size: Cycle.UNDERBLOCKSIZE()}, scene);
         this.underBlock.material = myMats.darkMoonUB;
@@ -379,11 +374,11 @@ class Cycle {
         BF.ForceCompileMaterials([this.moon, this.sun, this.underBlock, this.skyBox]);
     }
 
-    moonPosition(t, r, w, moonPos) {
-        return BF.SetVec3([0, -Math.sin(w*t), Math.cos(w*t)], moonPos).scale(r);
+    setMoonPosition(t, r, w, moonPos) {
+        BF.SetVec3([0, -Math.sin(w*t), Math.cos(w*t)], moonPos).scaleInPlace(r);
     }
 
-    sunPosition(t, r, w, sunPos) {
-        return BF.SetVec3([Math.cos(w*t), Math.sin(w*t), 0], sunPos).scale(r);
+    setSunPosition(t, r, w, sunPos) {
+        BF.SetVec3([Math.cos(w*t), Math.sin(w*t), 0], sunPos).scaleInPlace(r);
     }
-} 
+}

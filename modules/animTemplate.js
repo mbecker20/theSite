@@ -11,7 +11,7 @@ class AnimTemplate {
 
         // set materials
         this.setMaterials(myMats);
-        
+
 
         this.setupGUIMenu(gui, this);
     }
@@ -40,7 +40,7 @@ class AnimTemplate {
     }
 
     setMaterials(myMats) {
-        //set materials  
+        //set materials
 
         //then BF.ForceCompileMaterials([mesh0, mesh1, ...])
     }
@@ -50,6 +50,8 @@ class AnimTemplate {
 
         var names = [];
         var controls = [];
+
+        // add controls here 
 
         this.guiMenu.addControls(names, controls);
     }
