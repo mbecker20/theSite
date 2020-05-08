@@ -432,8 +432,12 @@ class BF {
         var animState = {anims: anims};
         animState.switchActiveAnim = function(animKey) {
             window.sounds.animChange.play();
-            if (animState.activeAnim.guiMenu.panel.isVisible) {
-                gui.setActiveMenu(animState.anims[animKey].guiMenu);
+            if (gui.activeMenu.isSimSettings) {
+                if (gui.activeMenu.panel.isVisible) {
+                    gui.setActiveMenu(animState.anims[animKey].guiMenu);
+                } else {
+                    gui.activeMenu = animState.anims[animKey].guiMenu;
+                }
             }
             animState.activeAnim.deactivate();
             animState.activeAnim = animState.anims[animKey];
@@ -1071,6 +1075,7 @@ class UI {
         mainMenu.name = 'main menu';
         mainMenu.panel = UI.MakePanel(true, true);
         gui.texture.addControl(mainMenu.panel);
+        mainMenu.isSimSettings = false;
 
         mainMenu.panel.top = 30;
         mainMenu.panel.background = 'black'
@@ -1146,6 +1151,11 @@ class UI {
         // parent is menu that the back button goes back to
         let menu = {};
         menu.name = name;
+        if (pbText === 'sim settings') {
+            menu.isSimSettings = true;
+        } else {
+            menu.isSimSettings = false;
+        }
 
         menu.parentButton = UI.MakeParentButton(name.concat('parentButton'), pbText, menu, gui);
 
